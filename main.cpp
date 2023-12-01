@@ -4,8 +4,14 @@
 #include <Windows.h>
 #include <winuser.h>
 
-#define SCREEN_HEIGHT 60
-#define SCREEN_WIDTH 240
+/**************************************************************
+                   
+                   A SIMPLE RAYCASTER
+   
+**************************************************************/
+
+#define SCREEN_HEIGHT 20
+#define SCREEN_WIDTH 80
 
 #define SCREEN_FPS 10
 
@@ -44,7 +50,7 @@ float angle;
 float rayStep = 0.1f;
 
 float rotateStep = 5.0f;
-float moveStep = 0.1f;
+float moveStep = 0.2f;
 float viewDistance = 5.0f;
 
 HANDLE hStdout;
@@ -100,8 +106,6 @@ float rayCast(float posX, float posY, float angle, float rayStep, float rayDista
         }
     }
     
-    //printf("Raycast: origin(%.2f, %.2f) angle %.2f distance ", posX, posY, angle);
-
     if(collision)
     {
         if(distance > rayDistance)
@@ -109,14 +113,27 @@ float rayCast(float posX, float posY, float angle, float rayStep, float rayDista
             distance = rayDistance;
         }
 
-        //printf("result %.2f\n", distance);
-
         return distance;
     }
     else
     {
-        // printf("result none\n");
         return -1;
+    }
+}
+
+void drawString(char s[], int x, int y)
+{
+    int i;
+    i = 0;
+    
+    while(s[i] != '\0')
+    {
+        if(x + i >= 0 && x + i < SCREEN_WIDTH)
+        {
+            screen[y][x + i] = s[i];
+        }
+        
+        i ++;
     }
 }
 
@@ -150,6 +167,14 @@ void drawView()
     }
 }
 
+void setScreenCursorPosition(int x, int y)
+{
+    COORD coord;    
+    coord.X = 0;
+    coord.Y = y;
+    SetConsoleCursorPosition(hStdout, coord);    
+}
+
 void clearScreen()
 {
     for(int y = 0; y < SCREEN_HEIGHT; y ++)
@@ -157,10 +182,7 @@ void clearScreen()
         for(int x = 0; x < SCREEN_WIDTH; x++) { screen[y][x] = ' '; }
         screen[y][SCREEN_WIDTH] = '\0';
            
-        COORD coord;    
-        coord.X = 0;
-        coord.Y = y;
-        SetConsoleCursorPosition(hStdout, coord);
+        setScreenCursorPosition(0, y);
         printf(screen[y]);
         
     }
@@ -169,12 +191,10 @@ void clearScreen()
 
 void showScreen()
 {
+    
     for(int y = 0; y < SCREEN_HEIGHT; y ++)
     {
-        COORD coord;    
-        coord.X = 0;
-        coord.Y = y;
-        SetConsoleCursorPosition(hStdout, coord);
+        setScreenCursorPosition(0, y);
         printf(screen[y]);
     }    
 }
@@ -242,19 +262,56 @@ void initPlayer()
     angle = -90.0f;
 }
 
-void main()
+void initScreen()
 {
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
+
+void main()
+{
+    int gameStarted;
     
-    initPlayer();
+    gameStarted = 0;
+        
+    initScreen();
     
     while(!isKeyPressed('Q'))
     {
-        updatePlayer();
+        if(gameStarted)
+        {
+            updatePlayer();
+        }
+        else
+        {
+            if(isKeyPressed(' '))
+            {
+                initPlayer();
+                gameStarted = 1;
+            }
+        }
         
         clearScreen();
-        drawView();
+        
+        if(gameStarted)
+        {
+            drawView();
+        }
+        else
+        {
+            int x = SCREEN_WIDTH / 2 - 5;
+            int y = SCREEN_HEIGHT/2 - 5;
+            drawString("********************", x, y);
+            drawString("A Simple Raycaster  ", x, y + 1);
+            drawString("********************", x, y + 2);
+            drawString("  Move/Turn: WASD   ", x, y + 3);
+            drawString("  Quit: Q           ", x, y + 4);
+            drawString("                    ", x, y + 5);
+            drawString("Press space to start", x, y + 6);
+        }
+        
         showScreen();
+        
         Sleep((int)(1.0f / SCREEN_FPS * 1000));
         
     }    
