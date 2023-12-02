@@ -10,8 +10,14 @@
    
 **************************************************************/
 
+#define SCREEN_HEIGHT2WIDTH 4
+#define MAX_SCREEN_HEIGHT 60
+#define MIN_SCREEN_HEIGHT 10
+#define MAX_SCREEN_WIDTH (MAX_SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH)
+
+#define SCREEN_RESOLUTION_STEPS 5
+
 #define SCREEN_HEIGHT 29
-#define SCREEN_WIDTH 119
 
 #define SCREEN_FPS 10
 
@@ -21,10 +27,15 @@
 #define DEG2RAD (2.0f * PI / 360.0f)
 #define PI 3.1415927
 
-#define FOV 60.0f
-#define MAX_FOV 60.0f
-#define MIN_FOV 30.0f
+#define FOV 30.0f
+#define MAX_FOV 30.0f
+#define MIN_FOV 10.0f
 #define FOV_STEPS 10
+
+#define VIEW_DISTANCE 5.0f
+#define MIN_VIEW_DISTANCE 2.0f
+#define MAX_VIEW_DISTANCE 10.0f
+#define VIEW_DISTANCE_STEPS 10
 
 #define WALL_STEPS 10
 #define GROUND_STEPS 3
@@ -32,7 +43,7 @@
 char wallSteps[WALL_STEPS + 1] = "WKMOoL|li-";
 char groundSteps[GROUND_STEPS + 1] = "~-.";
 
-char screen[SCREEN_HEIGHT][SCREEN_WIDTH + 1];
+char screen[MAX_SCREEN_HEIGHT][MAX_SCREEN_WIDTH + 1];
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
                                      { 1, 1, 1, 1, 1, 1, 1, 1 },
@@ -56,12 +67,15 @@ float rayStep = 0.1f;
 
 float rotateStep = 5.0f;
 float moveStep = 0.2f;
-float viewDistance = 5.0f;
+float viewDistance;
 float fov;
 
 HANDLE consoleHandle;
 
-char linea[MAP_WIDTH + 1];
+int screenWidth;
+int screenHeight;
+
+char screenLine[MAX_SCREEN_WIDTH + 1];
 
 int checkCollision(float posX, float posY)
 {
@@ -134,7 +148,7 @@ void drawString(char s[], int x, int y)
     
     while(s[i] != '\0')
     {
-        if(x + i >= 0 && x + i < SCREEN_WIDTH)
+        if(x + i >= 0 && x + i < screenWidth)
         {
             screen[y][x + i] = s[i];
         }
@@ -145,22 +159,22 @@ void drawString(char s[], int x, int y)
 
 void drawColumn(int x, float wallDistanceFactor)
 {
-    int h = SCREEN_HEIGHT * (1 - wallDistanceFactor);
+    int h = screenHeight * (1 - wallDistanceFactor);
     
     int wallStep = (int)(wallDistanceFactor * WALL_STEPS);
     if(wallStep >= WALL_STEPS) { wallStep = WALL_STEPS - 1; }
     
     char w = wallSteps[wallStep];
     
-    for(int y = 0; y < SCREEN_HEIGHT; y ++)
+    for(int y = 0; y < screenHeight; y ++)
     {
-        if(y <= SCREEN_HEIGHT/2 + h/2 && y >= SCREEN_HEIGHT/2 - h/2)
+        if(y <= screenHeight/2 + h/2 && y >= screenHeight/2 - h/2)
         {
             screen[y][x] = w; 
         }
-        else if(y > SCREEN_HEIGHT/2 + h/2)  
+        else if(y > screenHeight/2 + h/2)  
         {
-            float groundDistanceFactor = 1 - (y - (SCREEN_HEIGHT/2.0f)) / (SCREEN_HEIGHT/2.0f);
+            float groundDistanceFactor = 1 - (y - (screenHeight/2.0f)) / (screenHeight/2.0f);
             int groundStep = (int)(groundDistanceFactor * GROUND_STEPS);
             if(groundStep >= GROUND_STEPS) { groundStep = GROUND_STEPS - 1; }
         
@@ -174,13 +188,13 @@ void drawColumn(int x, float wallDistanceFactor)
 
 void drawView()
 {
-    float centerX = (float)SCREEN_WIDTH / 2;
+    float centerX = (float)screenWidth / 2;
     
-    for(int x = 0; x < SCREEN_WIDTH; x ++)
+    for(int x = 0; x < screenWidth; x ++)
     {        
         float distanceFactor;
         
-        float distance = rayCast(posX, posY, angle + (x - centerX) / (float)SCREEN_WIDTH * fov / 2, rayStep, viewDistance);
+        float distance = rayCast(posX, posY, angle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance);
 
         if(distance < 0)
         {
@@ -203,12 +217,51 @@ void setScreenCursorPosition(int x, int y)
     SetConsoleCursorPosition(consoleHandle, coord);    
 }
 
+void setScreenCell(int cellX, int cellY, char c)
+{
+    if(cellX >= 0 && cellX < screenWidth && cellY >= 0 && cellY < screenHeight)
+    {
+        screen[cellY][cellX] = c;
+    }    
+}
+
+void fillScreenArea(int areaX, int areaY, int areaWidth, int areaHeight, char c)
+{
+    for(int y = areaY; y < areaY + areaHeight; y ++)
+    {
+        for(int x = areaX; x < areaX + areaWidth; x++)
+        {
+            if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight)
+            {
+                screen[y][x] = c;
+            }
+        }           
+       
+    }    
+}
+
+void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight)
+{
+    setScreenCell(windowX, windowY, 218);
+    setScreenCell(windowX + windowWidth - 1, windowY, 191);
+    setScreenCell(windowX, windowY + windowHeight - 1, 192);
+    setScreenCell(windowX + windowWidth - 1, windowY + windowHeight - 1, 217);    
+        
+    fillScreenArea(windowX + 1, windowY, windowWidth - 2, 1, 196);
+    fillScreenArea(windowX + 1, windowY + windowHeight - 1, windowWidth - 2, 1, 196);
+    
+    fillScreenArea(windowX, windowY + 1, 1, windowHeight - 2, 179);
+    fillScreenArea(windowX + windowWidth - 1, windowY + 1, 1, windowHeight - 2, 179);
+
+    fillScreenArea(windowX + 1, windowY + 1, windowWidth - 2, windowHeight - 2, ' ');
+}
+
 void clearScreen()
 {
-    for(int y = 0; y < SCREEN_HEIGHT; y ++)
+    for(int y = 0; y < screenHeight; y ++)
     {
-        for(int x = 0; x < SCREEN_WIDTH; x++) { screen[y][x] = ' '; }
-        screen[y][SCREEN_WIDTH] = '\0';
+        for(int x = 0; x < screenWidth; x++) { screen[y][x] = ' '; }
+        screen[y][screenWidth] = '\0';
            
         setScreenCursorPosition(0, y);
         printf(screen[y]);
@@ -217,10 +270,11 @@ void clearScreen()
 
 }
 
+
 void showScreen()
 {
     
-    for(int y = 0; y < SCREEN_HEIGHT; y ++)
+    for(int y = 0; y < screenHeight; y ++)
     {
         setScreenCursorPosition(0, y);
         printf(screen[y]);
@@ -307,8 +361,8 @@ void updatePlayer()
 
     }
     
-    int increaseFov = isKeyPressed('1');
-    int decreaseFov = isKeyPressed('2');
+    int increaseFov = isKeyPressed('2');
+    int decreaseFov = isKeyPressed('1');
     
     if(increaseFov || decreaseFov)
     {
@@ -328,6 +382,28 @@ void updatePlayer()
         
     }
     
+    int increaseViewDistance = isKeyPressed('6');
+    int decreaseViewDistance = isKeyPressed('5');
+    
+    if(increaseViewDistance || decreaseViewDistance)
+    {
+        float viewDistanceStep = (MAX_VIEW_DISTANCE - MIN_VIEW_DISTANCE) / VIEW_DISTANCE_STEPS;
+        
+        if(increaseViewDistance)
+        {
+            viewDistance = viewDistance + viewDistanceStep;
+        }
+        else
+        {
+            viewDistance = viewDistance - viewDistanceStep;
+        }
+        
+        if(viewDistance < MIN_VIEW_DISTANCE) { viewDistance = MIN_VIEW_DISTANCE; }
+        else if(viewDistance > MAX_VIEW_DISTANCE) { viewDistance = MAX_VIEW_DISTANCE; }
+        
+    }    
+    
+    
     
         
 }
@@ -339,12 +415,60 @@ void initPlayer()
     
     angle = -90.0f;
     
-    fov = MIN_FOV;
+    fov = FOV;
+    viewDistance = VIEW_DISTANCE;
 }
 
 void initScreen()
 {
     consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    screenHeight = SCREEN_HEIGHT;
+    screenWidth = SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH;
+    
+}
+
+void updateScreen()
+{
+    int increaseResolution = isKeyPressed('4');
+    int decreaseResolution = isKeyPressed('3');
+    
+    if(increaseResolution || decreaseResolution)
+    {
+        float heightStep = (MAX_SCREEN_HEIGHT - MIN_SCREEN_HEIGHT) / SCREEN_RESOLUTION_STEPS;
+        
+        if(increaseResolution)
+        {
+            screenHeight = screenHeight + heightStep;
+        }
+        else
+        {
+            screenHeight = screenHeight - heightStep;
+        }
+        
+        if(screenHeight < MIN_SCREEN_HEIGHT) { screenHeight = MIN_SCREEN_HEIGHT; }
+        else if(screenHeight > MAX_SCREEN_HEIGHT) { screenHeight = MAX_SCREEN_HEIGHT; }
+        
+        screenWidth = screenHeight * SCREEN_HEIGHT2WIDTH;
+        
+    }    
+}
+
+void drawHud()
+{
+    
+    drawWindow(screenWidth - 21, 1, 21, 7);
+
+    sprintf(screenLine, "FOV: %d", (int)fov);    
+    drawString(screenLine, screenWidth - 20, 2);
+    sprintf(screenLine, "RES: %dx%d", screenWidth, screenHeight);    
+    drawString(screenLine, screenWidth - 20, 3);
+    sprintf(screenLine, "POS: %.2f,%.2f", posX, posY);    
+    drawString(screenLine, screenWidth - 20, 4);
+    sprintf(screenLine, "ANG: %.2f", angle);    
+    drawString(screenLine, screenWidth - 20, 5);
+    sprintf(screenLine, "DIS: %.2f", viewDistance);    
+    drawString(screenLine, screenWidth - 20, 6);
 }
 
 
@@ -371,23 +495,28 @@ void main()
             }
         }
         
+        updateScreen();
+        
         clearScreen();
         
         if(gameStarted)
         {
             drawView();
+            drawHud();
         }
         else
         {
-            int x = SCREEN_WIDTH / 2 - 5;
-            int y = SCREEN_HEIGHT/2 - 5;
-            drawString("********************", x, y);
-            drawString("A Simple Raycaster  ", x, y + 1);
-            drawString("********************", x, y + 2);
-            drawString("  Move/Turn: WASD   ", x, y + 3);
-            drawString("  Quit: Q           ", x, y + 4);
-            drawString("                    ", x, y + 5);
-            drawString("Press space to start", x, y + 6);
+            int x = screenWidth/ 2 - 12;
+            int y = screenHeight/2 - 5;
+            
+            drawWindow(x, y, 24, 8);
+            
+            drawString("  A Simple Raycaster  ", x + 1, y + 1);
+            drawString("                      ", x + 1, y + 2);
+            drawString("   Move/Turn: WASD    ", x + 1, y + 3);
+            drawString("   Quit: Q            ", x + 1, y + 4);
+            drawString("                      ", x + 1, y + 5);
+            drawString(" Press space to start ", x + 1, y + 6);
         }
         
         showScreen();
