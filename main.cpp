@@ -66,7 +66,7 @@ float angle;
 float rayStep = 0.1f;
 
 float rotateStep = 5.0f;
-float moveStep = 0.2f;
+float moveStep = 0.1f;
 float viewDistance;
 float fov;
 
@@ -225,9 +225,9 @@ void setScreenCell(int cellX, int cellY, char c)
     }    
 }
 
-void fillScreenArea(int areaX, int areaY, int areaWidth, int areaHeight, char c)
+void fillScreenArea(int areaX, int blankAreaY, int areaWidth, int blankAreaHeight, char c)
 {
-    for(int y = areaY; y < areaY + areaHeight; y ++)
+    for(int y = blankAreaY; y < blankAreaY + blankAreaHeight; y ++)
     {
         for(int x = areaX; x < areaX + areaWidth; x++)
         {
@@ -240,21 +240,62 @@ void fillScreenArea(int areaX, int areaY, int areaWidth, int areaHeight, char c)
     }    
 }
 
-void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight)
+void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, char title[])
 {
+    // Corners
+    
     setScreenCell(windowX, windowY, 218);
     setScreenCell(windowX + windowWidth - 1, windowY, 191);
     setScreenCell(windowX, windowY + windowHeight - 1, 192);
-    setScreenCell(windowX + windowWidth - 1, windowY + windowHeight - 1, 217);    
-        
+    setScreenCell(windowX + windowWidth - 1, windowY + windowHeight - 1, 217);
+    
+    // Horizontal borders
+
     fillScreenArea(windowX + 1, windowY, windowWidth - 2, 1, 196);
     fillScreenArea(windowX + 1, windowY + windowHeight - 1, windowWidth - 2, 1, 196);
-    
-    fillScreenArea(windowX, windowY + 1, 1, windowHeight - 2, 179);
-    fillScreenArea(windowX + windowWidth - 1, windowY + 1, 1, windowHeight - 2, 179);
 
-    fillScreenArea(windowX + 1, windowY + 1, windowWidth - 2, windowHeight - 2, ' ');
+    int blankAreaY = windowY + 1;
+    int blankAreaHeight = windowHeight - 2;
+    
+    if(title != NULL)
+    {
+        // Title borders
+        
+        setScreenCell(windowX, windowY + 1, 179);
+        setScreenCell(windowX + windowWidth - 1, windowY + 1, 179);
+        
+        // Title
+        
+        fillScreenArea(windowX + 1, windowY + 1, windowWidth - 2, 1, ' ');
+        drawString(title, windowX + 2, windowY + 1);
+        
+        // Title divider tips
+        
+        setScreenCell(windowX, windowY + 2, 195);
+        setScreenCell(windowX + windowWidth - 1, windowY + 2, 180);
+        
+        // Title divider interior
+
+        fillScreenArea(windowX + 1, windowY + 2, windowWidth - 2, 1, 196);
+        
+        blankAreaY = blankAreaY + 2;
+        blankAreaHeight = blankAreaHeight - 2;
+    }
+    
+    // Vertical borders
+    
+    fillScreenArea(windowX, blankAreaY, 1, blankAreaHeight, 179);
+    fillScreenArea(windowX + windowWidth - 1, blankAreaY, 1, blankAreaHeight, 179);
+    
+    // Blank area
+
+    fillScreenArea(windowX + 1, blankAreaY, windowWidth - 2, blankAreaHeight, ' ');
+   
+    
+    
 }
+
+
 
 void clearScreen()
 {
@@ -456,8 +497,9 @@ void updateScreen()
 
 void drawHud()
 {
+    // Stats
     
-    drawWindow(screenWidth - 21, 1, 21, 7);
+    drawWindow(screenWidth - 21, 1, 21, 7, NULL);
 
     sprintf(screenLine, "FOV: %d", (int)fov);    
     drawString(screenLine, screenWidth - 20, 2);
@@ -469,6 +511,29 @@ void drawHud()
     drawString(screenLine, screenWidth - 20, 5);
     sprintf(screenLine, "DIS: %.2f", viewDistance);    
     drawString(screenLine, screenWidth - 20, 6);
+    
+    // Minimap
+    
+    int windowX = screenWidth - 2 - MAP_WIDTH;
+    int windowY = screenHeight - 2 - MAP_HEIGHT;
+    
+    drawWindow(windowX, windowY, MAP_WIDTH + 2, MAP_HEIGHT + 2, NULL);
+    
+    for(int y = 0; y < MAP_HEIGHT; y ++)
+    {
+        for(int x = 0; x < MAP_WIDTH; x++)
+        {
+            screenLine[x] = map[y][x] == 0 ? ' ' : '#';
+        }
+        
+        screenLine[MAP_WIDTH] = '\0';
+
+        drawString(screenLine, windowX + 1, windowY + 1 + y);
+    }
+    
+    setScreenCell(windowX + 1 + (int)posX, windowY + 1 + (int)posY, '@');
+    
+    
 }
 
 
@@ -509,10 +574,7 @@ void main()
             int x = screenWidth/ 2 - 12;
             int y = screenHeight/2 - 5;
             
-            drawWindow(x, y, 24, 8);
-            
-            drawString("  A Simple Raycaster  ", x + 1, y + 1);
-            drawString("                      ", x + 1, y + 2);
+            drawWindow(x, y, 24, 8, "A simple Raycaster");
             drawString("   Move/Turn: WASD    ", x + 1, y + 3);
             drawString("   Quit: Q            ", x + 1, y + 4);
             drawString("                      ", x + 1, y + 5);
