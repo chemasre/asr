@@ -37,8 +37,38 @@
 #define MAX_VIEW_DISTANCE 10.0f
 #define VIEW_DISTANCE_STEPS 10
 
+#define DIRECTIONS 8
+
 #define WALL_STEPS 10
 #define GROUND_STEPS 3
+
+// const int windowCornerTopLeft = 218;
+// const int windowCornerTopRight = 191;
+// const int windowCornerBottomLeft = 192;
+// const int windowCornerBottomRight = 217;
+// const int windowBorderHorizontal = 196;
+// const int windowBorderVertical = 179;
+// const int windowDividerTipLeft = 195;
+// const int windowDividerTipRight = 180;
+
+const int windowCornerTopLeft = '.';
+const int windowCornerTopRight = '.';
+const int windowCornerBottomLeft = '`';
+const int windowCornerBottomRight = '`';
+const int windowBorderHorizontal = '-';
+const int windowBorderVertical = '|';
+const int windowDividerTipLeft = '|';
+const int windowDividerTipRight = '|';
+
+// const int windowCornerTopLeft = '.';
+// const int windowCornerTopRight = '.';
+// const int windowCornerBottomLeft = '.';
+// const int windowCornerBottomRight = '.';
+// const int windowBorderHorizontal = '.';
+// const int windowBorderVertical = ':';
+// const int windowDividerTipLeft = ':';
+// const int windowDividerTipRight = ':';
+
 
 char wallSteps[WALL_STEPS + 1] = "WKMOoL|li-";
 char groundSteps[GROUND_STEPS + 1] = "~-.";
@@ -59,9 +89,11 @@ int map[MAP_HEIGHT][MAP_WIDTH] = {
                                      { 1, 1, 1, 1, 1, 1, 1, 1 },
                                  };
                 
-float posX;
-float posY;
-float angle;
+float playerPosX;
+float playerPosY;
+float playerAngle;
+
+char directions[DIRECTIONS] = { '^', '/', '>', '\\', 'V', '/', '<', '\\' };
 
 float rayStep = 0.1f;
 
@@ -76,6 +108,8 @@ int screenWidth;
 int screenHeight;
 
 char screenLine[MAX_SCREEN_WIDTH + 1];
+
+int frameCounter;
 
 int checkCollision(float posX, float posY)
 {
@@ -194,7 +228,7 @@ void drawView()
     {        
         float distanceFactor;
         
-        float distance = rayCast(posX, posY, angle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance);
+        float distance = rayCast(playerPosX, playerPosY, playerAngle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance);
 
         if(distance < 0)
         {
@@ -244,15 +278,15 @@ void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, cha
 {
     // Corners
     
-    setScreenCell(windowX, windowY, 218);
-    setScreenCell(windowX + windowWidth - 1, windowY, 191);
-    setScreenCell(windowX, windowY + windowHeight - 1, 192);
-    setScreenCell(windowX + windowWidth - 1, windowY + windowHeight - 1, 217);
+    setScreenCell(windowX, windowY, windowCornerTopLeft);
+    setScreenCell(windowX + windowWidth - 1, windowY, windowCornerTopRight);
+    setScreenCell(windowX, windowY + windowHeight - 1, windowCornerBottomLeft);
+    setScreenCell(windowX + windowWidth - 1, windowY + windowHeight - 1, windowCornerBottomRight);
     
     // Horizontal borders
 
-    fillScreenArea(windowX + 1, windowY, windowWidth - 2, 1, 196);
-    fillScreenArea(windowX + 1, windowY + windowHeight - 1, windowWidth - 2, 1, 196);
+    fillScreenArea(windowX + 1, windowY, windowWidth - 2, 1, windowBorderHorizontal);
+    fillScreenArea(windowX + 1, windowY + windowHeight - 1, windowWidth - 2, 1, windowBorderHorizontal);
 
     int blankAreaY = windowY + 1;
     int blankAreaHeight = windowHeight - 2;
@@ -261,8 +295,8 @@ void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, cha
     {
         // Title borders
         
-        setScreenCell(windowX, windowY + 1, 179);
-        setScreenCell(windowX + windowWidth - 1, windowY + 1, 179);
+        setScreenCell(windowX, windowY + 1, windowBorderVertical);
+        setScreenCell(windowX + windowWidth - 1, windowY + 1, windowBorderVertical);
         
         // Title
         
@@ -271,12 +305,12 @@ void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, cha
         
         // Title divider tips
         
-        setScreenCell(windowX, windowY + 2, 195);
-        setScreenCell(windowX + windowWidth - 1, windowY + 2, 180);
+        setScreenCell(windowX, windowY + 2, windowDividerTipLeft);
+        setScreenCell(windowX + windowWidth - 1, windowY + 2, windowDividerTipRight);
         
         // Title divider interior
 
-        fillScreenArea(windowX + 1, windowY + 2, windowWidth - 2, 1, 196);
+        fillScreenArea(windowX + 1, windowY + 2, windowWidth - 2, 1, windowBorderHorizontal);
         
         blankAreaY = blankAreaY + 2;
         blankAreaHeight = blankAreaHeight - 2;
@@ -284,8 +318,8 @@ void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, cha
     
     // Vertical borders
     
-    fillScreenArea(windowX, blankAreaY, 1, blankAreaHeight, 179);
-    fillScreenArea(windowX + windowWidth - 1, blankAreaY, 1, blankAreaHeight, 179);
+    fillScreenArea(windowX, blankAreaY, 1, blankAreaHeight, windowBorderVertical);
+    fillScreenArea(windowX + windowWidth - 1, blankAreaY, 1, blankAreaHeight, windowBorderVertical);
     
     // Blank area
 
@@ -336,11 +370,13 @@ void updatePlayer()
 
     if(rotateLeft)
     {
-        angle -= rotateStep;
+        playerAngle -= rotateStep;
+        if(playerAngle < 0) { playerAngle += 360.0f; }
     }
     else if(rotateRight)
     {
-        angle += rotateStep;
+        playerAngle += rotateStep;
+        if(playerAngle >= 360.0f) { playerAngle -= 360.0f; }
     }
     
     if(moveForward || moveBackwards || moveLeft || moveRight)
@@ -349,13 +385,13 @@ void updatePlayer()
         float nextPosX;
         float nextPosY;
 
-        nextPosX = posX;
-        nextPosY = posY;
+        nextPosX = playerPosX;
+        nextPosY = playerPosY;
         
         if(moveForward || moveBackwards)
         {
-            float stepForwardX = cos(angle * DEG2RAD) * moveStep;
-            float stepForwardY = sin(angle * DEG2RAD) * moveStep;
+            float stepForwardX = cos(playerAngle * DEG2RAD) * moveStep;
+            float stepForwardY = sin(playerAngle * DEG2RAD) * moveStep;
 
             if(moveForward)
             {
@@ -372,8 +408,8 @@ void updatePlayer()
         
         if(moveLeft || moveRight)
         {
-            float stepLateralX = cos((angle + 90) * DEG2RAD) * moveStep;
-            float stepLateralY = sin((angle + 90) * DEG2RAD) * moveStep;
+            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * moveStep;
+            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * moveStep;
             
             if(moveRight)
             {
@@ -396,8 +432,8 @@ void updatePlayer()
         
         if(!checkCollision(nextPosX, nextPosY))
         {
-            posX = nextPosX;
-            posY = nextPosY;
+            playerPosX = nextPosX;
+            playerPosY = nextPosY;
         }
 
     }
@@ -451,13 +487,26 @@ void updatePlayer()
 
 void initPlayer()
 {
-    posX = 3.5f;
-    posY = 9.5f;
+    playerPosX = 3.5f;
+    playerPosY = 9.5f;
     
-    angle = -90.0f;
+    playerAngle = 270.0f;
     
     fov = FOV;
     viewDistance = VIEW_DISTANCE;
+}
+
+int getPlayerDirection()
+{
+    float sectorAngleWidth = 360.0f / 8;
+    float sectorAngle = (playerAngle - (270 - sectorAngleWidth / 2)) / sectorAngleWidth;
+
+    int sector = (int)sectorAngle;
+    if(sector < 0) { sector += 8; }
+    else if(sector >= 8) { sector -= 8; }
+    
+    return sector;
+    
 }
 
 void initScreen()
@@ -505,9 +554,9 @@ void drawHud()
     drawString(screenLine, screenWidth - 20, 2);
     sprintf(screenLine, "RES: %dx%d", screenWidth, screenHeight);    
     drawString(screenLine, screenWidth - 20, 3);
-    sprintf(screenLine, "POS: %.2f,%.2f", posX, posY);    
+    sprintf(screenLine, "POS: %.2f,%.2f", playerPosX, playerPosY);    
     drawString(screenLine, screenWidth - 20, 4);
-    sprintf(screenLine, "ANG: %.2f", angle);    
+    sprintf(screenLine, "ANG: %.2f(%d)", playerAngle, getPlayerDirection());    
     drawString(screenLine, screenWidth - 20, 5);
     sprintf(screenLine, "DIS: %.2f", viewDistance);    
     drawString(screenLine, screenWidth - 20, 6);
@@ -523,7 +572,7 @@ void drawHud()
     {
         for(int x = 0; x < MAP_WIDTH; x++)
         {
-            screenLine[x] = map[y][x] == 0 ? ' ' : '#';
+            screenLine[x] = map[y][x] == 0 ? ' ' : 'W';
         }
         
         screenLine[MAP_WIDTH] = '\0';
@@ -531,7 +580,11 @@ void drawHud()
         drawString(screenLine, windowX + 1, windowY + 1 + y);
     }
     
-    setScreenCell(windowX + 1 + (int)posX, windowY + 1 + (int)posY, '@');
+    if(frameCounter % 8 < 4) 
+    {
+        char d = directions[getPlayerDirection()];
+        setScreenCell(windowX + 1 + (int)playerPosX, windowY + 1 + (int)playerPosY, d);
+    }
     
     
 }
@@ -543,9 +596,11 @@ void main()
     
     gameStarted = 0;
         
+    frameCounter = 0;
+
     initScreen();
     
-    while(!isKeyPressed('Q'))
+    while(!isKeyPressed(27))
     {
         if(gameStarted)
         {
@@ -576,14 +631,16 @@ void main()
             
             drawWindow(x, y, 24, 8, "A simple Raycaster");
             drawString("   Move/Turn: WASD    ", x + 1, y + 3);
-            drawString("   Quit: Q            ", x + 1, y + 4);
+            drawString("   Quit: ESC          ", x + 1, y + 4);
             drawString("                      ", x + 1, y + 5);
-            drawString(" Press space to start ", x + 1, y + 6);
+            if(frameCounter % 8 < 4) { drawString(" Press space to start ", x + 1, y + 6); }
         }
         
         showScreen();
         
         Sleep((int)(1.0f / SCREEN_FPS * 1000));
+        
+        frameCounter ++;
         
     }   
 
