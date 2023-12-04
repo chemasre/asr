@@ -1,1 +1,1 @@
-cl main.cpp user32.lib
+cl /Iinclude /Fe:bin/main.exe /Fo:obj/ src/*.cpp user32.lib
