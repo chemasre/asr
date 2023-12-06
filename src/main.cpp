@@ -1,9 +1,11 @@
 #include <common_header.hpp>
-#include <screen.hpp>
 #include <input.hpp>
+#include <screen.hpp>
+#include <ui.hpp>
+#include <system.hpp>
 #include <player.hpp>
 #include <map.hpp>
-#include <ui.hpp>
+#include <view.hpp>
 
 /**************************************************************
                    
@@ -17,11 +19,10 @@ void main()
     
     gameStarted = 0;
         
-    frameCounter = 0;
-
+    initView();
     initScreen();
     
-    while(!isKeyPressed(27))
+    while(!isKeyPressed(KEY_ESC))
     {
         if(gameStarted)
         {
@@ -29,14 +30,17 @@ void main()
         }
         else
         {
-            if(isKeyPressed(' '))
+            if(isKeyPressed(KEY_SPACE))
             {
                 initPlayer();
                 gameStarted = 1;
             }
         }
         
+        updateView();
+
         updateScreen();
+        
         
         clearScreen();
         
@@ -59,7 +63,7 @@ void main()
         
         showScreen();
         
-        Sleep((int)(1.0f / SCREEN_FPS * 1000));
+        wait((int)(1.0f / SCREEN_FPS * 1000));
         
         frameCounter ++;
         

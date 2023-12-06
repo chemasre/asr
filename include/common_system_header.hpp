@@ -3,5 +3,7 @@
 
 #include <Windows.h>
 #include <winuser.h>
+#include <stdio.h>
+#include <math.h>
 
 #endif

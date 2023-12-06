@@ -1,6 +1,6 @@
 #include "player.hpp"
-#include <input.hpp>
 #include <map.hpp>
+#include <view.hpp>
 
 float playerPosX;
 float playerPosY;
@@ -8,6 +8,7 @@ float playerAngle;
 
 float rotateStep = 5.0f;
 float moveStep = 0.1f;
+float strafeStep = 0.02;
 
 
 void updatePlayer()
@@ -62,8 +63,8 @@ void updatePlayer()
         
         if(moveLeft || moveRight)
         {
-            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * moveStep;
-            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * moveStep;
+            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * strafeStep;
+            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * strafeStep;
             
             if(moveRight)
             {
@@ -84,56 +85,13 @@ void updatePlayer()
         if(nextPosY < 0) { nextPosY = 0; }
         else if(nextPosY > MAP_HEIGHT) { nextPosY = MAP_HEIGHT; }
         
-        if(!checkCollision(nextPosX, nextPosY))
+        if(getMapCell(nextPosX, nextPosY, MAP_CELL_WALL) == MAP_CELL_FREE)
         {
             playerPosX = nextPosX;
             playerPosY = nextPosY;
         }
 
     }
-    
-    int increaseFov = isKeyPressed('2');
-    int decreaseFov = isKeyPressed('1');
-    
-    if(increaseFov || decreaseFov)
-    {
-        float fovStep = (MAX_FOV - MIN_FOV) / FOV_STEPS;
-        
-        if(increaseFov)
-        {
-            fov = fov + fovStep;
-        }
-        else
-        {
-            fov = fov - fovStep;
-        }
-        
-        if(fov < MIN_FOV) { fov = MIN_FOV; }
-        else if(fov > MAX_FOV) { fov = MAX_FOV; }
-        
-    }
-    
-    int increaseViewDistance = isKeyPressed('6');
-    int decreaseViewDistance = isKeyPressed('5');
-    
-    if(increaseViewDistance || decreaseViewDistance)
-    {
-        float viewDistanceStep = (MAX_VIEW_DISTANCE - MIN_VIEW_DISTANCE) / VIEW_DISTANCE_STEPS;
-        
-        if(increaseViewDistance)
-        {
-            viewDistance = viewDistance + viewDistanceStep;
-        }
-        else
-        {
-            viewDistance = viewDistance - viewDistanceStep;
-        }
-        
-        if(viewDistance < MIN_VIEW_DISTANCE) { viewDistance = MIN_VIEW_DISTANCE; }
-        else if(viewDistance > MAX_VIEW_DISTANCE) { viewDistance = MAX_VIEW_DISTANCE; }
-        
-    }    
-    
     
     
         
@@ -146,8 +104,6 @@ void initPlayer()
     
     playerAngle = 270.0f;
     
-    fov = FOV;
-    viewDistance = VIEW_DISTANCE;
 }
 
 int getPlayerDirection()

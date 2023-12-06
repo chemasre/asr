@@ -1,6 +1,6 @@
-#include "input.hpp"
+#include <input.hpp>
 
-int isKeyPressed(char k)
+int isKeyPressed(int k)
 {
     return GetKeyState(k) & 0x8000;
 }

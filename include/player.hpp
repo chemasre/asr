@@ -1,7 +1,7 @@
 #ifndef _PLAYER_HPP_
 #define _PLAYER_HPP_
 
-#include "common_header.hpp"
+#include <common_header.hpp>
 
 extern float playerPosX;
 extern float playerPosY;

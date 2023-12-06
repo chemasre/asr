@@ -1,7 +1,7 @@
-#include "ui.hpp"
+#include <ui.hpp>
 #include <player.hpp>
-#include <screen.hpp>
 #include <map.hpp>
+#include <view.hpp>
 
 
 
@@ -28,6 +28,7 @@ const int windowDividerTipRight = '|';
 
 
 char directions[DIRECTIONS] = { '^', '/', '>', '\\', 'V', '/', '<', '\\' };
+
 
 void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, char title[])
 {

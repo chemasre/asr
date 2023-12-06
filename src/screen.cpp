@@ -13,6 +13,8 @@ char screen[MAX_SCREEN_HEIGHT][MAX_SCREEN_WIDTH + 1];
 
 int frameCounter;
 
+
+
 void drawString(char s[], int x, int y)
 {
     int i;
@@ -93,12 +95,14 @@ void initScreen()
     screenHeight = SCREEN_HEIGHT;
     screenWidth = SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH;
     
+    frameCounter = 0;
+    
 }
 
 void updateScreen()
 {
-    int increaseResolution = isKeyPressed('4');
-    int decreaseResolution = isKeyPressed('3');
+    int increaseResolution = isKeyPressed(KEY_PLUS);
+    int decreaseResolution = isKeyPressed(KEY_MINUS);
     
     if(increaseResolution || decreaseResolution)
     {
@@ -122,3 +126,5 @@ void updateScreen()
 
     frameCounter ++;
 }
+
+

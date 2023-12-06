@@ -1,7 +1,6 @@
 #ifndef _SCREEN_HPP_
 #define _SCREEN_HPP_
 
-#include "common_header.hpp"
 #include <common_system_header.hpp>
 
 #define SCREEN_HEIGHT 29
