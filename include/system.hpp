@@ -4,6 +4,7 @@
 #include <common_system_header.hpp>
 
 int approximately(float x, float y);
+float clamp01(float x);
 
 void wait(int millis);
 

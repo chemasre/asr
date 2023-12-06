@@ -16,6 +16,7 @@
 
 #define LIGHTSTEPS 9
 #define GROUND_STEPS 3
+#define SKY_STEPS 3
 
 float viewDistance;
 float fov;
@@ -23,6 +24,7 @@ float fov;
 
 char lightSteps[LIGHTSTEPS + 1] = "@&8OCc;:.";
 char groundSteps[GROUND_STEPS + 1] = "+~-";
+char skySteps[SKY_STEPS + 1] = "=\"'";
 
 float rayStep = 0.1f;
 
@@ -30,6 +32,7 @@ float sunLightDirection = 45;
 float sunLightIntensity = 0.5f;
 
 float ambientLightIntensity = 0.5f;
+
 
 void initView()
 {
@@ -155,24 +158,26 @@ void drawColumn(int x, float depth, float direction)
     float sunLightDirY = sin(sunLightDirection * DEG2RAD);
 
     float dot = dirX * sunLightDirX + dirY * sunLightDirY;    
-    float light = ambientLightIntensity + (dot > 0 ? sunLightIntensity * dot: 0);
+    float light = clamp01(ambientLightIntensity + (dot > 0 ? sunLightIntensity * dot: 0));
     
     int h = screenHeight * (1 - depth);
-    
-    int lightStep = (int)((depth + (1 - light)) * LIGHTSTEPS);
-    if(lightStep >= LIGHTSTEPS) { lightStep = LIGHTSTEPS - 1; }
-    else if(lightStep < 0) { lightStep = 0; }
-    
-    char l = lightSteps[lightStep];
     
     for(int y = 0; y < screenHeight; y ++)
     {
         if(y <= screenHeight/2 + h/2 && y >= screenHeight/2 - h/2)
         {
-            screen[y][x] = l; 
+            int lightStep = (int)((clamp01(depth + (1 - light)) * LIGHTSTEPS));
+            if(lightStep >= LIGHTSTEPS) { lightStep = LIGHTSTEPS - 1; }
+            else if(lightStep < 0) { lightStep = 0; }
+            
+            char l = lightSteps[lightStep];
+            
+             screen[y][x] = l; 
         }
         else if(y > screenHeight/2 + h/2)  
         {
+            // ground
+            
             float groundDistanceFactor = 1 - (y - (screenHeight/2.0f)) / (screenHeight/2.0f);
             int groundStep = (int)(groundDistanceFactor * GROUND_STEPS);
             if(groundStep >= GROUND_STEPS) { groundStep = GROUND_STEPS - 1; }
@@ -180,6 +185,16 @@ void drawColumn(int x, float depth, float direction)
             char g = groundSteps[groundStep];
             
             screen[y][x] = g;
+        }
+        else
+        {
+            // sky
+
+            float skyHeightFactor = 1 - ((screenHeight/2.0f) - y)  / (screenHeight/2.0f);
+            int skyStep = (int)(skyHeightFactor * SKY_STEPS);            
+            if(skyStep >= SKY_STEPS) { skyStep = SKY_STEPS - 1; }
+            char s = skySteps[skyStep];            
+            screen[y][x] = s; 
         }
     }
 }

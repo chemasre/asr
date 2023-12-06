@@ -10,7 +10,7 @@
 #define MAX_SCREEN_WIDTH (MAX_SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH)
 #define SCREEN_RESOLUTION_STEPS 5
 
-#define SCREEN_FPS 10
+#define SCREEN_FPS 24
 
 extern int frameCounter;
 extern int screenWidth;
