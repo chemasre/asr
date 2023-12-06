@@ -14,22 +14,22 @@
 #define SUNLIGHT_DIRECTION_STEPS 10
 #define LIGHT_INTENSITY_STEPS 10
 
-#define LIGHTSTEPS 12
+#define LIGHTSTEPS 9
 #define GROUND_STEPS 3
 
 float viewDistance;
 float fov;
 
 
-char lightSteps[LIGHTSTEPS + 1] = "WKMOyolic;:.";
+char lightSteps[LIGHTSTEPS + 1] = "@&8OCc;:.";
 char groundSteps[GROUND_STEPS + 1] = "+~-";
 
 float rayStep = 0.1f;
 
 float sunLightDirection = 45;
-float sunLightIntensity = 1.0f;
+float sunLightIntensity = 0.5f;
 
-float ambientLightIntensity = 0.6f;
+float ambientLightIntensity = 0.5f;
 
 void initView()
 {
@@ -180,7 +180,6 @@ void drawColumn(int x, float depth, float direction)
             char g = groundSteps[groundStep];
             
             screen[y][x] = g;
-            
         }
     }
 }
