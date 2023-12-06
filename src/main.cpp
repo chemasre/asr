@@ -6,6 +6,7 @@
 #include <player.hpp>
 #include <map.hpp>
 #include <view.hpp>
+#include <menu.hpp>
 
 /**************************************************************
                    
@@ -13,60 +14,162 @@
    
 **************************************************************/
 
+#define GAMESTATE_MAINMENU 0
+#define GAMESTATE_PLAYING 1
+
+
+#define MENU_MAIN 0
+#define MENU_CONFIG 1
+
+#define MENU_MAIN_OPTION_CONFIG 1
+
+#define MENUMAIN_TITLE 0
+#define MENUMAIN_FIRST_OPTION (MENUMAIN_TITLE + 1)
+#define MENUMAIN_OPTIONS 3
+
+#define MENUCONFIG_TITLE (MENUMAIN_FIRST_OPTION + MENUMAIN_OPTIONS)
+#define MENUCONFIG_FIRST_OPTION (MENUCONFIG_TITLE + 1)
+#define MENUCONFIG_OPTIONS 4
+
+
 void main()
 {
-    int gameStarted;
-    
-    gameStarted = 0;
         
-    initView();
     initScreen();
+    initView();
+    initPlayer();
+    initMenu();
+
+    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 0], "Ambient intensity: %.2f", ambientLightIntensity);
+    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 1], "Sun intensity: %.2f", sunLightIntensity);
+    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 2], "Sun direction: %.2f", sunLightDirection);
     
-    while(!isKeyPressed(KEY_ESC))
+    int gameState = GAMESTATE_MAINMENU;
+    int exit = 0;
+    
+    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 0);
+
+    while(!exit)
     {
-        if(gameStarted)
+        if(gameState == GAMESTATE_MAINMENU)
+        {
+            updateMenu();
+            
+            if(menu == MENU_MAIN)
+            {
+                if(isKeyDown(KEY_ESC))
+                {
+                    exit = 1;
+                }
+                else if(menuOptionSelected)
+                {
+                    if(menuOption == 0)
+                    {
+                        gameState = GAMESTATE_PLAYING;
+                    }
+                    else if(menuOption == 1)
+                    {
+                        setMenu(MENU_CONFIG, MENUCONFIG_TITLE, MENUCONFIG_FIRST_OPTION, MENUCONFIG_OPTIONS, 0);                    
+                    }
+                    else if(menuOption == 2)
+                    {
+                        exit = 1;
+                    }
+                }
+            }
+            else if(menu == MENU_CONFIG)
+            {
+                int back = 0;
+                
+                if(isKeyDown(KEY_ESC))
+                {
+                    back = 1;
+                }
+                else if(menuOptionSelected)
+                {                    
+                    if(menuOption == 3) { back = 1; }
+                }
+                else if(menuOptionLeft || menuOptionRight)
+                {    
+                    if(menuOption == 0)
+                    {
+                        float step = 1.0f / LIGHT_INTENSITY_STEPS;
+                        
+                        if(menuOptionRight) { ambientLightIntensity = ambientLightIntensity + step; }
+                        else { ambientLightIntensity = ambientLightIntensity - step; }
+                        
+                        if(ambientLightIntensity < 0) { ambientLightIntensity = 0; }
+                        else if(ambientLightIntensity > 1.0f) { ambientLightIntensity = 1.0f; }
+                        
+                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 0], "Ambient intensity: %.2f", ambientLightIntensity);
+                    }
+                    else if(menuOption == 1)
+                    {
+                        float step = 1.0f / LIGHT_INTENSITY_STEPS;
+                        
+                        if(menuOptionRight) { sunLightIntensity = sunLightIntensity + step; }
+                        else { sunLightIntensity = sunLightIntensity - step; }
+                        
+                        if(sunLightIntensity < 0) { sunLightIntensity = 0; }
+                        else if(sunLightIntensity > 1.0f) { sunLightIntensity = 1.0f; }
+
+                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 1], "Sun intensity: %.2f", sunLightIntensity);
+                    }
+                    else if(menuOption == 2)
+                    {
+                        float step = 360.0f / SUNLIGHT_DIRECTION_STEPS;
+                        
+                        if(menuOptionRight) { sunLightDirection = sunLightDirection + step; }
+                        else { sunLightDirection = sunLightDirection - step; }
+                        
+                        if(sunLightDirection < 0) { sunLightDirection += 360.0f; }
+                        else if(sunLightDirection > 360.0f) { sunLightDirection -= 360.0f; }
+
+                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 2], "Sun direction: %.2f", sunLightDirection);
+                    }
+    
+                }
+                
+                if(back)
+                {
+                    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 1);
+                    gameState = GAMESTATE_MAINMENU;
+                }
+            }
+            
+        }
+        else // (gameState == GAMESTATE_PLAYING)
         {
             updatePlayer();
-        }
-        else
-        {
-            if(isKeyPressed(KEY_SPACE))
+            updateView();
+            
+            if(isKeyDown(KEY_ESC))
             {
-                initPlayer();
-                gameStarted = 1;
+                setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 0);                
+                gameState = GAMESTATE_MAINMENU;
             }
+            
         }
-        
-        updateView();
+       
 
         updateScreen();
-        
-        
         clearScreen();
         
-        if(gameStarted)
+        drawView();
+
+        if(gameState == GAMESTATE_MAINMENU)
         {
-            drawView();
-            drawHud();
+            drawMenu();
         }
-        else
+        else // gameState == GAMESTATE_PLAYING
         {
-            int x = screenWidth/ 2 - 12;
-            int y = screenHeight/2 - 5;
-            
-            drawWindow(x, y, 24, 8, "A simple Raycaster");
-            drawString("   Move/Turn: WASD    ", x + 1, y + 3);
-            drawString("   Quit: ESC          ", x + 1, y + 4);
-            drawString("                      ", x + 1, y + 5);
-            if(frameCounter % 8 < 4) { drawString(" Press space to start ", x + 1, y + 6); }
+            drawHud();
         }
         
         showScreen();
         
         wait((int)(1.0f / SCREEN_FPS * 1000));
-        
-        frameCounter ++;
-        
+                
     }   
 
 

@@ -19,5 +19,6 @@
 #define KEY_MINUS VK_OEM_MINUS
 
 int isKeyPressed(int k);
+int isKeyDown(int k);
 
 #endif

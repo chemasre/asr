@@ -2,18 +2,6 @@
 #include <player.hpp>
 #include <view.hpp>
 
-#define FOV 30.0f
-#define MAX_FOV 30.0f
-#define MIN_FOV 10.0f
-#define FOV_STEPS 10
-
-#define VIEW_DISTANCE 5.0f
-#define MIN_VIEW_DISTANCE 2.0f
-#define MAX_VIEW_DISTANCE 10.0f
-#define VIEW_DISTANCE_STEPS 10
-#define SUNLIGHT_DIRECTION_STEPS 10
-#define LIGHT_INTENSITY_STEPS 10
-
 #define LIGHTSTEPS 9
 #define GROUND_STEPS 3
 #define SKY_STEPS 3
