@@ -24,11 +24,13 @@
 #define MENU_MAIN_OPTION_CONFIG 1
 
 #define MENUMAIN_TITLE 0
-#define MENUMAIN_FIRST_OPTION (MENUMAIN_TITLE + 1)
+#define MENUMAIN_FIRST_TEXTLINE (MENUMAIN_TITLE + 1)
+#define MENUMAIN_TEXTLINES 2
 #define MENUMAIN_OPTIONS 3
 
-#define MENUCONFIG_TITLE (MENUMAIN_FIRST_OPTION + MENUMAIN_OPTIONS)
-#define MENUCONFIG_FIRST_OPTION (MENUCONFIG_TITLE + 1)
+#define MENUCONFIG_TITLE (MENUMAIN_FIRST_TEXTLINE + MENUMAIN_TEXTLINES + MENUMAIN_OPTIONS)
+#define MENUCONFIG_FIRST_TEXTLINE (MENUCONFIG_TITLE + 1)
+#define MENUCONFIG_TEXTLINES 0
 #define MENUCONFIG_OPTIONS 4
 
 
@@ -40,14 +42,14 @@ void main()
     initPlayer();
     initMenu();
 
-    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 0], "Ambient intensity: %.2f", ambientLightIntensity);
-    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 1], "Sun intensity: %.2f", sunLightIntensity);
-    sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 2], "Sun direction: %.2f", sunLightDirection);
+    sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 0], "Ambient intensity: %.2f", ambientLightIntensity);
+    sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 1], "Sun intensity: %.2f", sunLightIntensity);
+    sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 2], "Sun direction: %.2f", sunLightDirection);
     
     int gameState = GAMESTATE_MAINMENU;
     int exit = 0;
     
-    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 0);
+    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_TEXTLINE, MENUMAIN_TEXTLINES, MENUMAIN_OPTIONS, 0);
 
     while(!exit)
     {
@@ -69,7 +71,7 @@ void main()
                     }
                     else if(menuOption == 1)
                     {
-                        setMenu(MENU_CONFIG, MENUCONFIG_TITLE, MENUCONFIG_FIRST_OPTION, MENUCONFIG_OPTIONS, 0);                    
+                        setMenu(MENU_CONFIG, MENUCONFIG_TITLE, MENUCONFIG_FIRST_TEXTLINE, MENUCONFIG_TEXTLINES, MENUCONFIG_OPTIONS, 0);                    
                     }
                     else if(menuOption == 2)
                     {
@@ -101,7 +103,7 @@ void main()
                         if(ambientLightIntensity < 0) { ambientLightIntensity = 0; }
                         else if(ambientLightIntensity > 1.0f) { ambientLightIntensity = 1.0f; }
                         
-                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 0], "Ambient intensity: %.2f", ambientLightIntensity);
+                        sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 0], "Ambient intensity: %.2f", ambientLightIntensity);
                     }
                     else if(menuOption == 1)
                     {
@@ -113,7 +115,7 @@ void main()
                         if(sunLightIntensity < 0) { sunLightIntensity = 0; }
                         else if(sunLightIntensity > 1.0f) { sunLightIntensity = 1.0f; }
 
-                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 1], "Sun intensity: %.2f", sunLightIntensity);
+                        sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 1], "Sun intensity: %.2f", sunLightIntensity);
                     }
                     else if(menuOption == 2)
                     {
@@ -125,14 +127,14 @@ void main()
                         if(sunLightDirection < 0) { sunLightDirection += 360.0f; }
                         else if(sunLightDirection > 360.0f) { sunLightDirection -= 360.0f; }
 
-                        sprintf(menuLines[MENUCONFIG_FIRST_OPTION + 2], "Sun direction: %.2f", sunLightDirection);
+                        sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 2], "Sun direction: %.2f", sunLightDirection);
                     }
     
                 }
                 
                 if(back)
                 {
-                    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 1);
+                    setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_TEXTLINE, MENUMAIN_TEXTLINES, MENUMAIN_OPTIONS, 1);
                     gameState = GAMESTATE_MAINMENU;
                 }
             }
@@ -145,7 +147,7 @@ void main()
             
             if(isKeyDown(KEY_ESC))
             {
-                setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_OPTION, MENUMAIN_OPTIONS, 0);                
+                setMenu(MENU_MAIN, MENUMAIN_TITLE, MENUMAIN_FIRST_TEXTLINE, MENUMAIN_TEXTLINES, MENUMAIN_OPTIONS, 0);                
                 gameState = GAMESTATE_MAINMENU;
             }
             

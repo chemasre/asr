@@ -6,9 +6,9 @@ float playerPosX;
 float playerPosY;
 float playerAngle;
 
-float rotateStep = 5.0f;
-float moveStep = 0.1f;
-float strafeStep = 0.02;
+float rotateSpeed = 200;
+float moveSpeed = 2.5f;
+float strafeSpeed = 0.5f;
 
 
 void updatePlayer()
@@ -25,12 +25,12 @@ void updatePlayer()
 
     if(rotateLeft)
     {
-        playerAngle -= rotateStep;
+        playerAngle -= rotateSpeed * (1.0f / SCREEN_FPS);
         if(playerAngle < 0) { playerAngle += 360.0f; }
     }
     else if(rotateRight)
     {
-        playerAngle += rotateStep;
+        playerAngle += rotateSpeed * (1.0f / SCREEN_FPS);
         if(playerAngle >= 360.0f) { playerAngle -= 360.0f; }
     }
     
@@ -45,8 +45,8 @@ void updatePlayer()
         
         if(moveForward || moveBackwards)
         {
-            float stepForwardX = cos(playerAngle * DEG2RAD) * moveStep;
-            float stepForwardY = sin(playerAngle * DEG2RAD) * moveStep;
+            float stepForwardX = cos(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);;
+            float stepForwardY = sin(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);;
 
             if(moveForward)
             {
@@ -63,8 +63,8 @@ void updatePlayer()
         
         if(moveLeft || moveRight)
         {
-            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * strafeStep;
-            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * strafeStep;
+            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * strafeSpeed * (1.0f / SCREEN_FPS);;
+            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * strafeSpeed * (1.0f / SCREEN_FPS);;
             
             if(moveRight)
             {
