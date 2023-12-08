@@ -151,7 +151,7 @@ void drawColumn(int x, float depth, float direction, float u)
     float dot = dirX * sunLightDirX + dirY * sunLightDirY;    
     float light = clamp01(ambientLightIntensity + (dot > 0 ? sunLightIntensity * dot: 0));
     
-    int h = screenHeight * (1 - depth);
+    int h = screenHeight * (1 - depth) * (1 - depth);
     
     for(int y = 0; y < screenHeight; y ++)
     {
@@ -171,7 +171,7 @@ void drawColumn(int x, float depth, float direction, float u)
                 
             }
                 
-            int lightStep = (int)((clamp01(depth + (1 - light) * texture) * LIGHTSTEPS));
+            int lightStep = (int)((clamp01(depth + (1 - light) * (1 - texture)) * LIGHTSTEPS));
             if(lightStep >= LIGHTSTEPS) { lightStep = LIGHTSTEPS - 1; }
             else if(lightStep < 0) { lightStep = 0; }
             
@@ -222,9 +222,9 @@ void drawView()
         
         float distance;
         float normal;
-        float v;
+        float u;
 
-        int hit = rayCast(playerPosX, playerPosY, playerAngle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance, &distance, &normal, &v);
+        int hit = rayCast(playerPosX, playerPosY, playerAngle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance, &distance, &normal, &u);
 
         if(!hit)
         {
@@ -236,11 +236,11 @@ void drawView()
         }
         
        
-        drawColumn(x, depth, normal, v);
+        drawColumn(x, depth, normal, u);
     }
 }
 
-int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, float *v)
+int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, float *u)
 {
     int result;
     int prevMapX = (int)prevPosX;
@@ -256,23 +256,23 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
         if(prevMapY < nextMapY)
         {
             *normal = 90;
-            *v = 1 - fabs(nextPosX - (int)nextPosX);
+            *u = 1 - fabs(nextPosX - (int)nextPosX);
             
         }
         else if(prevMapY > nextMapY)
         {
             *normal = 270;
-            *v = fabs(nextPosX - (int)nextPosX);
+            *u = fabs(nextPosX - (int)nextPosX);
         }
         else if(prevMapX < nextMapX)
         {
             *normal = 180;
-            *v = fabs(nextPosY - (int)nextPosY);
+            *u = fabs(nextPosY - (int)nextPosY);
         }
         else // prevMapX > nextMapX
         {
             *normal = 0;
-            *v = 1 - fabs(nextPosY - (int)nextPosY);
+            *u = 1 - fabs(nextPosY - (int)nextPosY);
         }
     }
     
@@ -292,38 +292,50 @@ int rayCast(float posX, float posY, float angle, float rayStep, float rayDistanc
 {
     // Assumes that there's no map collision at posX and posY 
     
-    float distance = 0;
     float normal;
     float v;
     int collision = 0;
             
-    float sinAngle = sin(angle * DEG2RAD);
-    float cosAngle = cos(angle * DEG2RAD);
     
-    while(distance <= rayDistance && !collision)
+    float stepX = cos(angle * DEG2RAD) * rayStep;
+    float stepY = sin(angle * DEG2RAD) * rayStep;
+    
+    float rayDistance2 = rayDistance * rayDistance;
+    float distance2 = 0;
+    
+    float rayX = posX;
+    float rayY = posY;
+   
+    while(distance2 < rayDistance2 && !collision)
     {
-        float rayEndX = posX + cosAngle * distance;
-        float rayEndY = posY + sinAngle * distance;
+        float distance = 0;
         
-        if(rayCastStep(posX, posY, rayEndX, rayEndY, &normal, &v))
+        float rayNextX = rayX + stepX;
+        float rayNextY = rayY + stepY;
+        
+        float dx = (rayNextX - posX);
+        float dy = (rayNextY - posY);
+        distance2 =  dx * dx + dy * dy;
+        
+        if(rayCastStep(rayX, rayY, rayNextX, rayNextY, &normal, &v))
         {
             collision = 1;
         }
         else
         {
-            distance = distance + rayStep;
-
+            rayX = rayNextX;
+            rayY = rayNextY;
         }
     }
     
     if(collision)
     {
-        if(distance > rayDistance)
+        if(distance2 > rayDistance2)
         {
-            distance = rayDistance;
+            distance2 = rayDistance2;
         }
         
-        *hitDistance = distance;
+        *hitDistance = sqrt(distance2);
         *hitNormal = normal;
         *hitV = v;
 
