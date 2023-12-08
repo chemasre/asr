@@ -8,7 +8,7 @@ float playerAngle;
 
 float rotateSpeed = 200;
 float moveSpeed = 2.5f;
-float strafeSpeed = 0.5f;
+float strafeSpeed = 2.5f;
 
 
 void updatePlayer()

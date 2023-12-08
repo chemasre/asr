@@ -3,8 +3,8 @@
 
 #include <common_header.hpp>
 
-#define FOV 30.0f
-#define MAX_FOV 30.0f
+#define FOV 120.0f
+#define MAX_FOV 160.0f
 #define MIN_FOV 10.0f
 #define FOV_STEPS 10
 
@@ -26,8 +26,8 @@ void updateView();
 void drawView();
 
 // private
-int rayCastStep(float prevPosX, float prevPosY, float posX, float posY, float *normal);
-int rayCast(float posX, float posY, float angle, float rayStep, float rayDistance, float* hitDistance, float* hitNormal);
+int rayCastStep(float prevPosX, float prevPosY, float posX, float posY, float *normal, float *u);
+int rayCast(float posX, float posY, float angle, float rayStep, float rayDistance, float* hitDistance, float* hitNormal, float* hitU);
 void drawColumn(int x, float depht, float light);
 void drawView();
 

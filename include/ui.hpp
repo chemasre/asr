@@ -6,4 +6,6 @@
 void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, char title[]);
 void drawHud();
 
+void drawFloat(int x, int y, char name[], float value); 
+
 #endif

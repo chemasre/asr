@@ -136,3 +136,9 @@ void drawHud()
     
     
 }
+
+void drawFloat(int x, int y, char name[], float value)
+{
+    sprintf(screenLine, "%s: %.2f", name, value);
+    drawString(screenLine, x, y);
+}
