@@ -215,6 +215,14 @@ void drawColumn(int x, float depth, float direction, float u)
 void drawView()
 {
     float centerX = (float)screenWidth / 2;
+    float screenAspect = (float)(screenHeight * FONT_HEIGHT) / (screenWidth * FONT_WIDTH);
+    
+    float halfFov = fov / 2;
+    
+    float h = VIEW_NEAR_DISTANCE / cos(halfFov * DEG2RAD);
+    float viewHeight = sin(halfFov * DEG2RAD) * h;
+    float viewWidth = viewHeight * screenAspect;
+    float viewScale = viewWidth / screenWidth;
     
     for(int x = 0; x < screenWidth; x ++)
     {        
@@ -223,8 +231,12 @@ void drawView()
         float distance;
         float normal;
         float u;
+        
+        float screenDeviationX = x - centerX;
+        float viewDeviationX = screenDeviationX * viewScale;
+        float viewDeviationAngle = atan2(viewDeviationX, VIEW_NEAR_DISTANCE) * RAD2DEG;
 
-        int hit = rayCast(playerPosX, playerPosY, playerAngle + (x - centerX) / (float)screenWidth * fov / 2, rayStep, viewDistance, &distance, &normal, &u);
+        int hit = rayCast(playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &u);        
 
         if(!hit)
         {

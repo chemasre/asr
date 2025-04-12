@@ -8,7 +8,8 @@
 #include <screen.hpp>
 #include <system.hpp>
 
+#define PI 3.1415926536
 #define DEG2RAD (2.0f * PI / 360.0f)
-#define PI 3.1415927
+#define RAD2DEG (360.0f / (2.0f * PI))
 
 #endif

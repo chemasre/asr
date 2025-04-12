@@ -12,6 +12,9 @@
 
 #define SCREEN_FPS 24
 
+#define FONT_WIDTH 0.5f
+#define FONT_HEIGHT 1.0f
+
 extern int frameCounter;
 extern int screenWidth;
 extern int screenHeight;

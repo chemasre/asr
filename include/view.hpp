@@ -15,11 +15,14 @@
 #define SUNLIGHT_DIRECTION_STEPS 10
 #define LIGHT_INTENSITY_STEPS 10
 
+#define VIEW_NEAR_DISTANCE 0.01f
+
 extern float fov;
 extern float viewDistance;
 extern float sunLightDirection;
 extern float sunLightIntensity;
 extern float ambientLightIntensity;
+
 
 void initView();
 void updateView();
