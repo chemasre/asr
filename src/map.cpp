@@ -1,18 +1,17 @@
 #include <map.hpp>
 
-
 int map[MAP_HEIGHT][MAP_WIDTH] = {
-                                     { 1, 1, 1, 1, 1, 1, 1, 1 },
-                                     { 1, 0, 1, 0, 0, 1, 0, 1 },
-                                     { 1, 0, 1, 0, 0, 1, 0, 1 },
-                                     { 1, 0, 0, 0, 0, 0, 0, 1 },
-                                     { 1, 0, 1, 0, 0, 1, 0, 1 },
-                                     { 1, 1, 1, 0, 0, 1, 1, 1 },
-                                     { 1, 0, 1, 0, 0, 1, 0, 1 },
-                                     { 1, 0, 1, 0, 0, 1, 0, 1 },
-                                     { 1, 0, 0, 0, 0, 0, 0, 1 },
-                                     { 1, 1, 1, 0, 0, 1, 1, 1 },
-                                     { 1, 1, 1, 1, 1, 1, 1, 1 },
+                                     { 100, 100, 100, 101, 101, 100, 100, 100 },
+                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
+                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
+                                     { 100, 000, 000, 000, 000, 000, 000, 100 },
+                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
+                                     { 100, 100, 101, 000, 000, 101, 100, 100 },
+                                     { 100, 000, 101, 000, 000, 101, 000, 100 },
+                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
+                                     { 100, 000, 000, 000, 000, 000, 000, 100 },
+                                     { 100, 100, 100, 000, 000, 100, 100, 100 },
+                                     { 100, 100, 100, 101, 101, 100, 100, 100 },
                                  };
 
 
@@ -22,7 +21,7 @@ int getMapCell(int x, int y, int boundaryDefault)
     else { return map[y][x]; }
 }
 
-int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, float *u)
+int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, int *tex, float *u)
 {
     int result;
     int prevMapX = (int)prevPosX;
@@ -30,16 +29,15 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
     int nextMapX = (int)nextPosX;
     int nextMapY = (int)nextPosY;
     
-    int previousCell = getMapCell(prevMapX, prevMapY, MAP_CELL_WALL);
-    int nextCell = getMapCell(nextMapX, nextMapY, MAP_CELL_WALL);
+    int previousCell = getMapCell(prevMapX, prevMapY, MAKE_CELL(MAP_CELL_TYPE_WALL, 0));
+    int nextCell = getMapCell(nextMapX, nextMapY, MAKE_CELL(MAP_CELL_TYPE_WALL, 0));
     
-    if(previousCell == MAP_CELL_FREE && nextCell != MAP_CELL_FREE)
+    if(CTYPE(previousCell) == MAP_CELL_TYPE_FREE && CTYPE(nextCell) != MAP_CELL_TYPE_FREE)
     {
         if(prevMapY < nextMapY)
         {
             *normal = 90;
             *u = 1 - fabs(nextPosX - (int)nextPosX);
-            
         }
         else if(prevMapY > nextMapY)
         {
@@ -56,9 +54,11 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
             *normal = 0;
             *u = 1 - fabs(nextPosY - (int)nextPosY);
         }
+
+        *tex = CTEX(nextCell);
     }
     
-    if(nextCell != MAP_CELL_FREE)
+    if(CTYPE(nextCell) != MAP_CELL_TYPE_FREE)
     {
         result = 1;
     }
@@ -70,7 +70,7 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
     return result;
 }
 
-int rayCast(float posX, float posY, float angle, float rayStep, float rayDistance, float *hitDistance, float *hitNormal, float *hitV)
+int rayCast(float posX, float posY, float angle, float rayStep, float rayDistance, float *hitDistance, float *hitNormal, int *hitTex, float *hitV)
 {
     posX = W2C(posX);
     posY = W2C(posY);
@@ -80,6 +80,7 @@ int rayCast(float posX, float posY, float angle, float rayStep, float rayDistanc
     // Assumes that there's no map collision at posX and posY 
     
     float normal;
+    int tex;
     float v;
     int collision = 0;
             
@@ -104,7 +105,7 @@ int rayCast(float posX, float posY, float angle, float rayStep, float rayDistanc
         float dy = (rayNextY - posY);
         distance2 =  dx * dx + dy * dy;
         
-        if(rayCastStep(rayX, rayY, rayNextX, rayNextY, &normal, &v))
+        if(rayCastStep(rayX, rayY, rayNextX, rayNextY, &normal, &tex, &v))
         {
             collision = 1;
         }
@@ -124,6 +125,7 @@ int rayCast(float posX, float posY, float angle, float rayStep, float rayDistanc
         
         *hitDistance = C2W(sqrt(distance2));
         *hitNormal = normal;
+        *hitTex = tex;
         *hitV = v;
 
         return 1;

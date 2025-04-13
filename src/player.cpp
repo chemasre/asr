@@ -85,16 +85,16 @@ void updatePlayer()
         if(nextPosY < 0) { nextPosY = 0; }
         else if(nextPosY > C2W(MAP_HEIGHT)) { nextPosY = C2W(MAP_HEIGHT); }
         
-        if(getMapCell(W2C(nextPosX), W2C(nextPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
+        if(CTYPE(getMapCell(W2C(nextPosX), W2C(nextPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
         {
             playerPosX = nextPosX;
             playerPosY = nextPosY;
         }
-        else if(getMapCell(W2C(playerPosX), W2C(nextPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
+        else if(CTYPE(getMapCell(W2C(playerPosX), W2C(nextPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
         {
             playerPosY = nextPosY;            
         }
-        else if(getMapCell(W2C(nextPosX), W2C(playerPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
+        else if(CTYPE(getMapCell(W2C(nextPosX), W2C(playerPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
         {
             playerPosX = nextPosX;            
         }

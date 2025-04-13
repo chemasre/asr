@@ -1,0 +1,3 @@
+[submodule "tools/cbmp"]
+	path = tools/cbmp
+	url = https://github.com/mattflow/cbmp.git

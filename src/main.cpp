@@ -5,6 +5,7 @@
 #include <system.hpp>
 #include <player.hpp>
 #include <map.hpp>
+#include <textures.hpp>
 #include <view.hpp>
 #include <menu.hpp>
 
@@ -38,10 +39,11 @@ void main()
 {
         
     initScreen();
+    initTextures();
     initView();
     initPlayer();
     initMenu();
-
+   
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 0], "Ambient intensity: %.2f", ambientLightIntensity);
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 1], "Sun intensity: %.2f", sunLightIntensity);
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 2], "Sun direction: %.2f", sunLightDirection);

@@ -140,7 +140,7 @@ void updateView()
 }
 
 
-void drawColumn(int screenX, float normalizedDistance, float direction, float u)
+void drawColumn(int screenX, float normalizedDistance, float direction, int texture, float u)
 {
     float dirX = cos(direction * DEG2RAD);
     float dirY = sin(direction * DEG2RAD);
@@ -167,16 +167,16 @@ void drawColumn(int screenX, float normalizedDistance, float direction, float u)
         if(viewWorldZ <= MAP_CELL_WORLD_SIZE && viewWorldZ >= 0)
         {
             float v = 0;
-            float texture = 0.3f;
+            float sample = 0.3f;
 
             // if(viewWorldZ > 0)
             // {
             v = 1.0f - W2C(viewWorldZ);
             
-            texture = getTextureSample(0, u, v, 0.3f);
+            sample = getTextureSample(texture, u, v, 0.3f);
             // }
                 
-            int lightStep = (int)((clamp01(normalizedDistance + (1 - light) * (1 - texture)) * LIGHTSTEPS));
+            int lightStep = (int)((clamp01(normalizedDistance + (1 - light) * (1 - sample)) * LIGHTSTEPS));
             if(lightStep >= LIGHTSTEPS) { lightStep = LIGHTSTEPS - 1; }
             else if(lightStep < 0) { lightStep = 0; }
             
@@ -188,7 +188,7 @@ void drawColumn(int screenX, float normalizedDistance, float direction, float u)
             // {
                 // drawFloat(screenX, screenY, "U", u);
                 // drawFloat(screenX, screenY + 1, "V", v);
-                // drawFloat(screenX, screenY + 2, "T", texture);
+                // drawFloat(screenX, screenY + 2, "T", sample);
             // }
             
             // if(screenY % 5 == 0 && screenX % 10 == 0)
@@ -265,13 +265,14 @@ void drawView()
         
         float distance;
         float normal;
+        int texture;
         float u;
         
         float screenDeviationX = screenX - centerX;
         float viewDeviationX = screenDeviationX * viewScale;
         float viewDeviationAngle = atan2(viewDeviationX, VIEW_NEAR_DISTANCE) * RAD2DEG;
 
-        int hit = rayCast(playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &u);        
+        int hit = rayCast(playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);        
 
         if(!hit)
         {
@@ -283,7 +284,7 @@ void drawView()
         }
         
        
-        drawColumn(screenX, normalizedDistance, normal, u);
+        drawColumn(screenX, normalizedDistance, normal, texture, u);
         
         // if(screenX % 20 == 0)
         // {
