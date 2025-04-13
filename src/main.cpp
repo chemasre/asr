@@ -34,6 +34,8 @@
 #define MENUCONFIG_TEXTLINES 0
 #define MENUCONFIG_OPTIONS 4
 
+#define SCREEN_TITLE "A Simple Raycaster"
+
 
 void main()
 {
@@ -43,6 +45,8 @@ void main()
     initView();
     initPlayer();
     initMenu();
+    
+    setScreenTitle(SCREEN_TITLE);
    
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 0], "Ambient intensity: %.2f", ambientLightIntensity);
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 1], "Sun intensity: %.2f", sunLightIntensity);

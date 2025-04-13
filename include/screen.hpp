@@ -2,26 +2,23 @@
 #define _SCREEN_HPP_
 
 #include <common_system_header.hpp>
+#include <common_header.hpp>
 
-#define SCREEN_HEIGHT 29
-#define SCREEN_HEIGHT2WIDTH 4
-#define MAX_SCREEN_HEIGHT 60
-#define MIN_SCREEN_HEIGHT 10
-#define MAX_SCREEN_WIDTH (MAX_SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH)
 #define SCREEN_RESOLUTION_STEPS 5
 
 #define SCREEN_FPS 24
-
-#define FONT_WIDTH 0.4f
-#define FONT_HEIGHT 0.9f
+#define SCREEN_MIN_WINDOW_WIDTH 960
+#define SCREEN_MIN_WINDOW_HEIGHT 480
 
 extern int frameCounter;
 extern int screenWidth;
 extern int screenHeight;
-extern char screen[MAX_SCREEN_HEIGHT][MAX_SCREEN_WIDTH + 1];
-extern char screenLine[MAX_SCREEN_WIDTH + 1];
+extern int fontWidth;
+extern int fontHeight;
+extern char** screen;
+extern char *screenLine;
 
-
+void setScreenTitle(char t[]);
 void drawString(char s[], int x, int y);
 void setScreenCursorPosition(int x, int y);
 void setScreenCell(int cellX, int cellY, char c);

@@ -3,17 +3,103 @@
 
 
 HANDLE consoleHandle;
+HWND windowHandle;
 
 int screenWidth;
 int screenHeight;
 
-char screenLine[MAX_SCREEN_WIDTH + 1];
+int screenWindowWidth;
+int screenWindowHeight;
 
-char screen[MAX_SCREEN_HEIGHT][MAX_SCREEN_WIDTH + 1];
+int screenMonitorWidth;
+int screenMonitorHeight;
+
+int screenMaxWindowWidth;
+int screenMaxWindowHeight;
+
+int fontWidth;
+int fontHeight;
+
+char* screenLine;
+
+char** screen;
 
 int frameCounter;
 
 
+void resizeScreen(int windowWidth, int windowHeight)
+{
+    BOOL result;    
+    
+    LONG_PTR style = GetWindowLongPtr(windowHandle, GWL_STYLE);
+    style &= ~(WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+    result = SetWindowLongPtr(windowHandle, GWL_STYLE, style);    
+    ASSERT(result, "Failed to set window style")
+    
+    int previousWidth = screenWidth;
+    int previousHeight = screenHeight;    
+    
+    CONSOLE_FONT_INFO font;
+    result = GetCurrentConsoleFont(consoleHandle, FALSE, &font);
+    ASSERT(result, "Unable to get console font")
+    
+    fontWidth = font.dwFontSize.X;
+    fontHeight = font.dwFontSize.Y; 
+
+    printf("font width %d height%d\n", fontWidth, fontHeight);
+    
+   
+    MoveWindow(windowHandle, screenMonitorWidth / 2 - windowWidth / 2, screenMonitorHeight / 2 - windowHeight / 2, windowWidth, windowHeight,  TRUE);
+    ShowScrollBar(windowHandle, SB_BOTH, FALSE);
+    
+    COORD coord = GetLargestConsoleWindowSize(consoleHandle);
+    screenMaxWindowWidth = coord.X * fontWidth - 1;
+    screenMaxWindowHeight = coord.Y * fontHeight - 1;
+    
+    screenWidth = windowWidth / fontWidth;
+    screenHeight = windowHeight / fontHeight;
+    
+    if(screenWidth >= coord.X - 1) { screenWidth = coord.X - 1; }
+    if(screenHeight>= coord.Y - 1) { screenHeight = coord.Y - 1; }
+    
+    printf("screen width %d height %d\n", screenWidth, screenHeight);
+
+    printf("max screen width %d height %d\n", coord.X, coord.Y);
+    
+    if(screenLine != 0) { free(screenLine); }
+    
+    if(screen != 0)
+    { 
+        for(int i = 0; i < previousHeight; i++)
+        {
+            free(screen[i]);
+        }
+        
+        free(screen);
+    }
+
+    screenLine = (char*)malloc(sizeof(char) * (screenWidth + 1));
+    screen = (char**)malloc(sizeof(char*) * screenHeight);
+    for(int i = 0; i < screenHeight; i++)
+    {
+        screen[i] = (char*)malloc(sizeof(char) * (screenWidth + 1));
+    }
+    
+    COORD consoleBufferSize = {(SHORT)(screenWidth + 1), (SHORT)(screenHeight + 1)};
+    result = SetConsoleScreenBufferSize(consoleHandle, consoleBufferSize);
+    ASSERT(result, "Unable to set console buffer size")    
+
+    SMALL_RECT consoleSize = {0, 0, (SHORT)(screenWidth), (SHORT)(screenHeight) };
+    result = SetConsoleWindowInfo(consoleHandle, TRUE, &consoleSize);
+    
+    printf("w %d h %d\n", screenWidth, screenHeight);
+    ASSERT(result, "Unable to set console size")
+    
+
+    screenWindowWidth = windowWidth;
+    screenWindowHeight = windowHeight;
+    
+}
 
 void drawString(char s[], int x, int y)
 {
@@ -29,6 +115,7 @@ void drawString(char s[], int x, int y)
         
         i ++;
     }
+
 }
 
 void setScreenCursorPosition(int x, int y)
@@ -37,6 +124,7 @@ void setScreenCursorPosition(int x, int y)
     coord.X = 0;
     coord.Y = y;
     SetConsoleCursorPosition(consoleHandle, coord);    
+    
 }
 
 void setScreenCell(int cellX, int cellY, char c)
@@ -91,12 +179,23 @@ void showScreen()
 void initScreen()
 {
     consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    windowHandle = GetConsoleWindow();
     
-    screenHeight = SCREEN_HEIGHT;
-    screenWidth = SCREEN_HEIGHT * SCREEN_HEIGHT2WIDTH;
+    screenLine = 0;
+    screen = 0;
+    
+    screenMonitorWidth = GetSystemMetrics(SM_CXFULLSCREEN);
+    screenMonitorHeight = GetSystemMetrics(SM_CYFULLSCREEN);    
+    
+    resizeScreen(SCREEN_MIN_WINDOW_WIDTH, SCREEN_MIN_WINDOW_HEIGHT);
     
     frameCounter = 0;
     
+}
+
+void setScreenTitle(char title[])
+{
+    SetConsoleTitle(title);
 }
 
 void updateScreen()
@@ -106,22 +205,32 @@ void updateScreen()
     
     if(increaseResolution || decreaseResolution)
     {
-        float heightStep = (MAX_SCREEN_HEIGHT - MIN_SCREEN_HEIGHT) / SCREEN_RESOLUTION_STEPS;
+        float heightStep = (screenMaxWindowHeight - SCREEN_MIN_WINDOW_HEIGHT) / (float)SCREEN_RESOLUTION_STEPS;
+        float widthStep = (screenMaxWindowWidth - SCREEN_MIN_WINDOW_WIDTH) / (float)SCREEN_RESOLUTION_STEPS;
+        
+        int nextWindowHeight = screenWindowHeight;
+        int nextWindowWidth = screenWindowWidth;
         
         if(increaseResolution)
         {
-            screenHeight = screenHeight + heightStep;
+            nextWindowHeight = screenWindowHeight + heightStep;
+            nextWindowWidth = screenWindowWidth + widthStep;
         }
         else
         {
-            screenHeight = screenHeight - heightStep;
+            nextWindowHeight = screenWindowHeight - heightStep;
+            nextWindowWidth = screenWindowWidth - widthStep;
         }
         
-        if(screenHeight < MIN_SCREEN_HEIGHT) { screenHeight = MIN_SCREEN_HEIGHT; }
-        else if(screenHeight > MAX_SCREEN_HEIGHT) { screenHeight = MAX_SCREEN_HEIGHT; }
+       
+        if(nextWindowHeight < SCREEN_MIN_WINDOW_HEIGHT) { nextWindowHeight = SCREEN_MIN_WINDOW_HEIGHT; }
+        else if(nextWindowHeight > screenMonitorHeight)  { nextWindowHeight = screenMonitorHeight; }
+
+        if(nextWindowWidth < SCREEN_MIN_WINDOW_WIDTH) { nextWindowWidth = SCREEN_MIN_WINDOW_WIDTH; }
+        else if(nextWindowWidth > screenMonitorWidth)  { nextWindowWidth = screenMonitorWidth; }
         
-        screenWidth = screenHeight * SCREEN_HEIGHT2WIDTH;
-        
+        clearScreen();
+        resizeScreen(nextWindowWidth, nextWindowHeight);
     } 
 
     frameCounter ++;

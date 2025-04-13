@@ -245,7 +245,7 @@ float getViewHeight()
 
 float getViewAspect()
 {
-    float screenAspect = (screenWidth * FONT_WIDTH) / (float)(screenHeight * FONT_HEIGHT);    
+    float screenAspect = (screenWidth * fontWidth) / (float)(screenHeight * fontHeight);    
     
     return screenAspect;
 }
