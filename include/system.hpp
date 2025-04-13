@@ -8,5 +8,6 @@ float clamp01(float x);
 
 void wait(int millis);
 
+void beep(int frequency, int millis);
 
 #endif

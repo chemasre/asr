@@ -7,8 +7,8 @@ float playerPosY;
 float playerAngle;
 
 float rotateSpeed = 200;
-float moveSpeed = 2.5f;
-float strafeSpeed = 2.5f;
+float moveSpeed = C2W(2.5f);
+float strafeSpeed = C2W(2.5f);
 
 
 void updatePlayer()
@@ -45,8 +45,8 @@ void updatePlayer()
         
         if(moveForward || moveBackwards)
         {
-            float stepForwardX = cos(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);;
-            float stepForwardY = sin(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);;
+            float stepForwardX = cos(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);
+            float stepForwardY = sin(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);
 
             if(moveForward)
             {
@@ -80,15 +80,27 @@ void updatePlayer()
         
         
         if(nextPosX < 0) { nextPosX = 0; }
-        else if(nextPosX > MAP_WIDTH) { nextPosX = MAP_WIDTH; }
+        else if(nextPosX > C2W(MAP_WIDTH)) { nextPosX = C2W(MAP_WIDTH); }
 
         if(nextPosY < 0) { nextPosY = 0; }
-        else if(nextPosY > MAP_HEIGHT) { nextPosY = MAP_HEIGHT; }
+        else if(nextPosY > C2W(MAP_HEIGHT)) { nextPosY = C2W(MAP_HEIGHT); }
         
-        if(getMapCell(nextPosX, nextPosY, MAP_CELL_WALL) == MAP_CELL_FREE)
+        if(getMapCell(W2C(nextPosX), W2C(nextPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
         {
             playerPosX = nextPosX;
             playerPosY = nextPosY;
+        }
+        else if(getMapCell(W2C(playerPosX), W2C(nextPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
+        {
+            playerPosY = nextPosY;            
+        }
+        else if(getMapCell(W2C(nextPosX), W2C(playerPosY), MAP_CELL_WALL) == MAP_CELL_FREE)
+        {
+            playerPosX = nextPosX;            
+        }
+        else
+        {
+            beep(PLAYER_BEEP_FREQUENCY,PLAYER_BEEP_MILLIS);
         }
 
     }
@@ -99,8 +111,8 @@ void updatePlayer()
 
 void initPlayer()
 {
-    playerPosX = 3.5f;
-    playerPosY = 9.5f;
+    playerPosX = C2W(3.5f);
+    playerPosY = C2W(9.5f);
     
     playerAngle = 270.0f;
     

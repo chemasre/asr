@@ -14,3 +14,9 @@ void wait(int millis)
 {
     Sleep(millis);
 }
+
+
+void beep(int frequency, int millis)
+{
+    Beep(frequency, millis);
+}

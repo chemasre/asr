@@ -131,7 +131,7 @@ void drawHud()
     if(frameCounter % 8 < 4) 
     {
         char d = directions[getPlayerDirection()];
-        setScreenCell(windowX + 1 + (int)playerPosX, windowY + 1 + (int)playerPosY, d);
+        setScreenCell(windowX + 1 + (int)W2C(playerPosX), windowY + 1 + (int)W2C(playerPosY), d);
     }
     
     
