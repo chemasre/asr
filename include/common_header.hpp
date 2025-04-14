@@ -14,4 +14,6 @@
 
 #define ASSERT(x, m) { if(!(x)) { printf(m); exit(-1); } }
 
+#define MAX_PATH_LENGTH 256
+
 #endif

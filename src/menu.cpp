@@ -87,18 +87,18 @@ void drawMenu()
     int x = screenWidth / 2 - width / 2;
     int y = screenHeight / 2 - height / 2;
     
-    drawWindow(x, y, width, height, menuLines[titleLine]);
+    drawWindow(x, y, width, height, menuLines[titleLine], MENU_COLOR);
     
     for(int i = 0; i < numTextLines; i ++)
     {
         sprintf(line, "%s", menuLines[firstTextLine + i]);
-        drawString(line, x + 1 - strlen(line) / 2 + (width - 4) / 2, y + 4 + i);
+        drawString(MENU_COLOR, line, x + 1 - strlen(line) / 2 + (width - 4) / 2, y + 4 + i);
     }    
     
     for(int i = 0; i < numOptions; i ++)
     {
         sprintf(line, i == menuOption ? "<%s>" : "%s", menuLines[firstTextLine + numTextLines + i]);
-        drawString(line, x + 1 - strlen(line) / 2 + (width - 4) / 2, y + 4 + numTextLines + (numTextLines > 0 ? 1 : 0) + i);
+        drawString(MENU_COLOR, line, x + 1 - strlen(line) / 2 + (width - 4) / 2, y + 4 + numTextLines + (numTextLines > 0 ? 1 : 0) + i);
     }
 }
 

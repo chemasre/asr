@@ -8,6 +8,10 @@
 #define GROUND_STEPS 3
 #define SKY_STEPS 3
 
+#define WALL_COLOR MAKE_COLOR(136, 68, 0)
+#define GROUND_COLOR MAKE_COLOR(131, 5, 5)
+#define SKY_COLOR MAKE_COLOR(149, 74, 0)
+
 
 float viewDistance;
 float fov;
@@ -167,22 +171,30 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
         if(viewWorldZ <= MAP_CELL_WORLD_SIZE && viewWorldZ >= 0)
         {
             float v = 0;
-            float sample = 0.3f;
+            TextureColor sample;
+            TextureColor boundaryDefault;
+            boundaryDefault.r = 0.3f;
+            boundaryDefault.g = 0.3f;
+            boundaryDefault.b = 0.3f;
 
             // if(viewWorldZ > 0)
             // {
             v = 1.0f - W2C(viewWorldZ);
             
-            sample = getTextureSample(texture, u, v, 0.3f);
+            sample = getTextureSample(texture, u, v, boundaryDefault);
             // }
+            
+            float sampleLight = (sample.r + sample.g + sample.b) / 3.0f;
                 
-            int lightStep = (int)((clamp01(normalizedDistance + (1 - light) * (1 - sample)) * LIGHTSTEPS));
+            int lightStep = (int)((clamp01(normalizedDistance + (1 - light) * (1 - sampleLight)) * LIGHTSTEPS));
             if(lightStep >= LIGHTSTEPS) { lightStep = LIGHTSTEPS - 1; }
             else if(lightStep < 0) { lightStep = 0; }
             
             char l = lightSteps[lightStep];
             
-            screen[screenY][screenX] = l;
+            int wallColor = MAKE_COLOR((int)(sample.r * 255), (int)(sample.g * 255), (int)(sample.b * 255));
+            
+            setScreenCell(screenX, screenY, wallColor, l);
 
             // if(screenY % 5 == 0 && screenX % 10 == 0)
             // {
@@ -219,7 +231,7 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
         
             char g = groundSteps[groundStep];
             
-            screen[screenY][screenX] = g;
+            setScreenCell(screenX, screenY, GROUND_COLOR, g);
         }
         else
         {
@@ -229,7 +241,7 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
             int skyStep = (int)(skyHeightFactor * SKY_STEPS);            
             if(skyStep >= SKY_STEPS) { skyStep = SKY_STEPS - 1; }
             char s = skySteps[skyStep];            
-            screen[screenY][screenX] = s; 
+            setScreenCell(screenX, screenY, SKY_COLOR, s);
         }
     }
 }

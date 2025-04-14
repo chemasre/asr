@@ -1,12 +1,12 @@
 #include <textures.hpp>
 
-float textures[MAX_TEXTURES][TEXTURE_SIZE][TEXTURE_SIZE];
+float textures[MAX_TEXTURES][TEXTURE_SIZE][TEXTURE_SIZE][3];
 
 
 void initTextures()
 {
-    char fileName[MAX_TEXTURE_PATH_LENGTH] = "";
-    char filePath[MAX_TEXTURE_PATH_LENGTH] = "";
+    char fileName[MAX_PATH_LENGTH] = "";
+    char filePath[MAX_PATH_LENGTH] = "";
     
     
     for(int i = 0; i < MAX_TEXTURES; i++)
@@ -32,9 +32,12 @@ void initTextures()
             {
                 float f;
                 
-                fread(&f, sizeof(float), 1, texFile);
-                
-                textures[i][y][x] = f;
+                fread(&f, sizeof(float), 1, texFile);                
+                textures[i][y][x][0] = f;
+                fread(&f, sizeof(float), 1, texFile);                
+                textures[i][y][x][1] = f;
+                fread(&f, sizeof(float), 1, texFile);                
+                textures[i][y][x][2] = f;
             }
             
         }
@@ -46,10 +49,18 @@ void initTextures()
 }
 
 
-float getTextureSample(int texture, float u, float v, float boundaryDefault)
+TextureColor getTextureSample(int texture, float u, float v, TextureColor boundaryDefault)
 {
     if(u < 0 || u >= 1 || v < 0 || v >= 1) { return boundaryDefault; }
     else
-    { return textures[texture][(int)(v * TEXTURE_SIZE)][(int)(u * TEXTURE_SIZE)]; }
+    {
+        TextureColor r;
+        float* color = &textures[texture][(int)(v * TEXTURE_SIZE)][(int)(u * TEXTURE_SIZE)][0];
+        r.r = color[0];
+        r.g = color[1];
+        r.b = color[2];
+
+        return r;
+    }
 }
 

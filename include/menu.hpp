@@ -9,6 +9,8 @@
 #define MENUTYPE_OPTIONS 0
 #define MENUTYPE_MESSAGE 1
 
+#define MENU_COLOR MAKE_COLOR(249,227,79)
+
 extern char menuLines[MAX_LINES][MAX_LINE_SIZE];
 
 extern int menu;

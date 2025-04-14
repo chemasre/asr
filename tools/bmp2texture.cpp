@@ -70,7 +70,7 @@ int main(int argc, char** argv)
     
     printf("Writing to %s", outputFileName);
     
-    FILE* outputFile = fopen(outputFileName, "w+");
+    FILE* outputFile = fopen(outputFileName, "wb");
     
     fwrite(&width, sizeof(int), 1, outputFile);
     fwrite(&height, sizeof(int), 1, outputFile);
@@ -85,11 +85,18 @@ int main(int argc, char** argv)
             
             get_pixel_rgb(image, x, y, &r, &g, &b);
             
-            float normalizedGrayscale = ((float)(r + g + b)) / 3 / 256.0f;
+            //float normalizedGrayscale = ((float)(r + g + b)) / 3 / 256.0f;            
+            //fwrite(&normalizedGrayscale, sizeof(float), 1, outputFile);
             
-            fwrite(&normalizedGrayscale, sizeof(float), 1, outputFile);
+            float rF = (float)(r / 255.0f);
+            float gF = (float)(g / 255.0f);
+            float bF = (float)(b / 255.0f);
             
-            //printf("%d, %d: R%d G%d B%d\n", x, y, r, g, b);
+            
+            fwrite(&rF, sizeof(float), 1, outputFile);
+            fwrite(&gF, sizeof(float), 1, outputFile);
+            fwrite(&bF, sizeof(float), 1, outputFile);
+
         }        
     }
     

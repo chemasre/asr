@@ -3,9 +3,8 @@
 
 #include <common_header.hpp>
 
-void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, char title[]);
-void drawHud();
+#define HUD_COLOR MAKE_COLOR(165,196,248)
 
-void drawFloat(int x, int y, char name[], float value); 
+void drawWindow(int windowX, int windowY, int windowWidth, int windowHeight, char title[], int color);
 
 #endif

@@ -20,9 +20,13 @@ int screenMaxWindowHeight;
 int fontWidth;
 int fontHeight;
 
-char* screenLine;
+int clearColor;
 
-char** screen;
+ScreenCell* screenLine;
+ScreenCell** screen;
+
+char showScreenCellBuffer[10];
+char showScreenBuffer[1024 * 1024];
 
 int frameCounter;
 
@@ -35,6 +39,12 @@ void resizeScreen(int windowWidth, int windowHeight)
     style &= ~(WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
     result = SetWindowLongPtr(windowHandle, GWL_STYLE, style);    
     ASSERT(result, "Failed to set window style")
+    
+    DWORD mode;    
+    result = GetConsoleMode(consoleHandle, &mode);
+    mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    result = SetConsoleMode(consoleHandle, mode);
+    ASSERT(result, "Failed to set console mode")
     
     int previousWidth = screenWidth;
     int previousHeight = screenHeight;    
@@ -78,12 +88,19 @@ void resizeScreen(int windowWidth, int windowHeight)
         free(screen);
     }
 
-    screenLine = (char*)malloc(sizeof(char) * (screenWidth + 1));
-    screen = (char**)malloc(sizeof(char*) * screenHeight);
+    screenLine = (ScreenCell*)malloc(sizeof(ScreenCell) * screenWidth);
+    screen = (ScreenCell**)malloc(sizeof(ScreenCell*) * screenHeight);
     for(int i = 0; i < screenHeight; i++)
     {
-        screen[i] = (char*)malloc(sizeof(char) * (screenWidth + 1));
+        screen[i] = (ScreenCell*)malloc(sizeof(ScreenCell) * screenWidth);
+        
+        for(int j = 0; j < screenWidth; j ++)
+        {
+            sprintf(screen[i][j].string, "\033[%dm%c\033[0m", 0, ' ');
+        }
+        
     }
+    
     
     COORD consoleBufferSize = {(SHORT)(screenWidth + 1), (SHORT)(screenHeight + 1)};
     result = SetConsoleScreenBufferSize(consoleHandle, consoleBufferSize);
@@ -101,7 +118,7 @@ void resizeScreen(int windowWidth, int windowHeight)
     
 }
 
-void drawString(char s[], int x, int y)
+void drawString(int color, char s[], int x, int y)
 {
     int i;
     i = 0;
@@ -110,7 +127,10 @@ void drawString(char s[], int x, int y)
     {
         if(x + i >= 0 && x + i < screenWidth)
         {
-            screen[y][x + i] = s[i];
+            sprintf(screen[y][x + i].string, "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(color), GET_COLOR_G(color), GET_COLOR_B(color), s[i]);
+            
+            screen[y][x + i].character = s[i];
+            screen[y][x + i].color = color;
         }
         
         i ++;
@@ -127,52 +147,109 @@ void setScreenCursorPosition(int x, int y)
     
 }
 
-void setScreenCell(int cellX, int cellY, char c)
+void setScreenCell(int cellX, int cellY, int color, char c)
 {
     if(cellX >= 0 && cellX < screenWidth && cellY >= 0 && cellY < screenHeight)
     {
-        screen[cellY][cellX] = c;
+        sprintf(screen[cellY][cellX].string, "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(color), GET_COLOR_G(color), GET_COLOR_B(color), c);
+        
+        screen[cellY][cellX].character = c;
+        screen[cellY][cellX].color = color;
+        
     }    
 }
 
-void fillScreenArea(int areaX, int blankAreaY, int areaWidth, int blankAreaHeight, char c)
+ScreenCell getScreenCell(int cellX, int cellY, int boundaryColor, char boundaryCharacter)
+{
+    ScreenCell cell = ScreenCell();
+    
+    if(cellX >= 0 && cellX < screenWidth && cellY >= 0 && cellY < screenHeight)
+    {
+        cell.character = screen[cellY][cellX].character;
+        cell.color = screen[cellY][cellX].character;
+        strcpy(cell.string, screen[cellY][cellX].string);
+    }
+    else
+    {
+        sprintf(cell.string, "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(boundaryColor), GET_COLOR_G(boundaryColor), GET_COLOR_B(boundaryColor), boundaryCharacter);
+        cell.character = boundaryCharacter;
+        cell.color = boundaryColor;
+    }
+    
+    return cell;
+}
+
+void fillScreenArea(int areaX, int blankAreaY, int areaWidth, int blankAreaHeight, int color, char c)
 {
     for(int y = blankAreaY; y < blankAreaY + blankAreaHeight; y ++)
     {
         for(int x = areaX; x < areaX + areaWidth; x++)
         {
             if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight)
-            {
-                screen[y][x] = c;
+            {                
+                sprintf(screen[y][x].string,  "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(color), GET_COLOR_G(color), GET_COLOR_B(color), c);
+                
+                screen[y][x].character = c;
+                screen[y][x].color = color;
+                
             }
         }           
        
     }    
 }
 
+void setClearColor(int color)
+{
+    clearColor = color;
+    // printf("R%d G%d B%d\n", GET_COLOR_R(clearColor), GET_COLOR_G(clearColor), GET_COLOR_B(clearColor));
+    
+    // exit(0);
+}
+
 void clearScreen()
 {
     for(int y = 0; y < screenHeight; y ++)
     {
-        for(int x = 0; x < screenWidth; x++) { screen[y][x] = ' '; }
-        screen[y][screenWidth] = '\0';
-           
-        setScreenCursorPosition(0, y);
-        printf(screen[y]);
-        
+        for(int x = 0; x < screenWidth; x++)
+        {
+            sprintf(screen[y][x].string,  "\033[48;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(clearColor), GET_COLOR_G(clearColor), GET_COLOR_B(clearColor), ' ');
+            
+            screen[y][x].character = ' ';
+            screen[y][x].color = clearColor;            
+        }
     }
+    
+    showScreen();
 
 }
 
 
 void showScreen()
 {
+    showScreenBuffer[0] = '\0';    
+    
+    int i = 0;
     
     for(int y = 0; y < screenHeight; y ++)
     {
-        setScreenCursorPosition(0, y);
-        printf(screen[y]);
+        for(int x = 0; x < screenWidth; x++)
+        {
+            char* c = screen[y][x].string;
+            int j = 0;
+            while(c[j] != '\0') { showScreenBuffer[i + j] = c[j]; j++; }
+            i += j;
+            
+        }
+        
+        showScreenBuffer[i] = '\n';
+        i++;
     }    
+    
+    showScreenBuffer[i] = '\0';
+    
+    setScreenCursorPosition(0, 0);
+    printf(showScreenBuffer);
+    
 }
 
 

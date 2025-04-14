@@ -3,6 +3,7 @@
 #include <screen.hpp>
 #include <ui.hpp>
 #include <system.hpp>
+#include <game.hpp>
 #include <player.hpp>
 #include <map.hpp>
 #include <textures.hpp>
@@ -36,10 +37,13 @@
 
 #define SCREEN_TITLE "A Simple Raycaster"
 
+#define BACKGROUND_COLOR MAKE_COLOR(0, 0, 0)
+
 
 void main()
 {
         
+    initInput();
     initScreen();
     initTextures();
     initView();
@@ -47,6 +51,7 @@ void main()
     initMenu();
     
     setScreenTitle(SCREEN_TITLE);
+    setClearColor(BACKGROUND_COLOR);
    
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 0], "Ambient intensity: %.2f", ambientLightIntensity);
     sprintf(menuLines[MENUCONFIG_FIRST_TEXTLINE + MENUCONFIG_TEXTLINES + 1], "Sun intensity: %.2f", sunLightIntensity);
@@ -161,7 +166,7 @@ void main()
        
 
         updateScreen();
-        clearScreen();
+        //clearScreen();
         
         drawView();
 
