@@ -1,10 +1,12 @@
-#include <stdio.h>
 #include "sprite_editor.hpp"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <input.hpp>
 #include <menu.hpp>
 #include <ui.hpp>
-#include <screen.hpp>
+#include <sprites.hpp>
 #include <system.hpp>
 
 #define VERSION_STRING_SIZE 20
@@ -16,6 +18,7 @@
 #define COLOR_SELECTED MAKE_COLOR(255,255,255)
 #define COLOR_UNSELECTED MAKE_COLOR(127,127,127)
 #define COLOR_ERROR MAKE_COLOR(255,0,0)
+#define COLOR_OPAQUE MAKE_COLOR(255,0,0)
 
 #define SPRITE_FILE_PATTERN "sprite%02d.spr"
 
@@ -40,16 +43,18 @@
 #define COLOR_PALETTE2_WIDTH 12
 #define COLOR_PALETTE2_HEIGHT 1
 
-#define INFO_POSITION_X (CELLS_WIDTH - INFO_WIDTH - 2)
-#define INFO_POSITION_Y (COLOR_PALETTE2_POSITION_Y  + COLOR_PALETTE2_HEIGHT + 2 + 2)
+#define OPAQUE_POSITION_X (CELLS_WIDTH - OPAQUE_WIDTH - 2)
+#define OPAQUE_POSITION_Y (COLOR_PALETTE2_POSITION_Y  + COLOR_PALETTE2_HEIGHT + 2 + 2)
 
-#define INFO_WIDTH 12
-#define INFO_HEIGHT 1
+#define OPAQUE_WIDTH 12
+#define OPAQUE_HEIGHT 1
 
 #define TOOL_DRAW 0
 #define TOOL_PICK 1
+#define TOOL_PIVOT 2
+#define TOOL_BOUNDS 3
 
-#define TOOLS_COUNT 2
+#define TOOLS_COUNT 4
 #define TOOLS_WIDTH 10
 #define TOOLS_HEIGHT TOOLS_COUNT
 #define TOOLS_POSITION_X 3
@@ -58,8 +63,9 @@
 #define MODE_ALL   0
 #define MODE_CHAR  1
 #define MODE_COLOR 2
+#define MODE_OPACITY 3
 
-#define MODES_COUNT 3
+#define MODES_COUNT 4
 #define MODES_WIDTH 10
 #define MODES_HEIGHT MODES_COUNT
 #define MODES_POSITION_X 3
@@ -105,6 +111,7 @@ int selectedRedLevel;
 int selectedGreenLevel;
 int selectedBlueLevel;
 int selectedAsciiLevel;
+int selectedOpacity;
 
 int drawAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 int drawAreaPosY = 4;
@@ -113,7 +120,9 @@ int drawAreaHeight = 32;
 
 char workPath[MAX_PATH_LENGTH];
 
-ScreenCell** sprite[SLOTS_COUNT];
+SpriteCell** spriteCells[SLOTS_COUNT];
+int spritePivots[SLOTS_COUNT * 2];
+int spriteBounds[SLOTS_COUNT * 4];
 
 
 float commandHighlightedTimer;
@@ -130,7 +139,7 @@ void drawUI()
 
     drawWindow(COLOR_PALETTE2_POSITION_X - 1, COLOR_PALETTE2_POSITION_Y - 3, COLOR_PALETTE2_WIDTH + 2, COLOR_PALETTE2_HEIGHT + 4, "COLOR", MAKE_COLOR(255, 255, 0));    
     
-    drawWindow(INFO_POSITION_X - 1, INFO_POSITION_Y - 3, INFO_WIDTH + 2, INFO_HEIGHT + 4, "INFO", MAKE_COLOR(255, 255, 0));  
+    drawWindow(OPAQUE_POSITION_X - 1, OPAQUE_POSITION_Y - 3, OPAQUE_WIDTH + 2, OPAQUE_HEIGHT + 4, "OPAQUE", MAKE_COLOR(255, 255, 0));  
 
     drawWindow(drawAreaPosX - 1, drawAreaPosY - 3, drawAreaWidth + 2, drawAreaHeight + 4, "SPRITE", MAKE_COLOR(255, 255, 0)); 
 
@@ -189,22 +198,18 @@ void drawUI()
         setScreenCell(COLOR_PALETTE2_POSITION_X + x, COLOR_PALETTE2_POSITION_Y, color, '#');
     } 
 
-    for(int x = 0; x < INFO_WIDTH; x++)
-    {
-        int r = (int)(selectedRedLevel * (255.0f / COLOR_PALETTE1_WIDTH));
-        int g = (int)(selectedGreenLevel * (255.0f / COLOR_PALETTE1_HEIGHT));
-        int b = (int)(selectedBlueLevel * (255.0f / COLOR_PALETTE2_WIDTH));
-        
-        char c = ASCII_FIRST + selectedAsciiLevel;
-        
-        setScreenCell(INFO_POSITION_X + x, INFO_POSITION_Y, MAKE_COLOR(r, g, b), c);
-    } 
+    drawString(selectedOpacity ? COLOR_SELECTED : COLOR_UNSELECTED, "TRUE", OPAQUE_POSITION_X, OPAQUE_POSITION_Y);
+    drawString(!selectedOpacity ? COLOR_SELECTED : COLOR_UNSELECTED, "FALSE", OPAQUE_POSITION_X + OPAQUE_WIDTH / 2, OPAQUE_POSITION_Y);
+
 
     for(int y = 0; y < drawAreaHeight; y++)
     {
         for(int x = 0; x < drawAreaWidth; x ++)
         {
-            setScreenCell(drawAreaPosX + x, drawAreaPosY + y, sprite[selectedSlot][y][x].color, sprite[selectedSlot][y][x].character);
+            if((spriteCells[selectedSlot][y][x].color & (1 << 24)) != 0)
+            {
+                setScreenCell(drawAreaPosX + x, drawAreaPosY + y, spriteCells[selectedSlot][y][x].color, spriteCells[selectedSlot][y][x].character);
+            }
         }
     }
 
@@ -219,10 +224,13 @@ void drawUI()
     
     drawString(selectedTool == TOOL_DRAW ? COLOR_SELECTED : COLOR_UNSELECTED, " DRAW", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
     drawString(selectedTool == TOOL_PICK ? COLOR_SELECTED : COLOR_UNSELECTED, " PICK", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
+    drawString(selectedTool == TOOL_PIVOT ? COLOR_SELECTED : COLOR_UNSELECTED, " PIVOT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 2);
+    drawString(selectedTool == TOOL_BOUNDS ? COLOR_SELECTED : COLOR_UNSELECTED, " BOUNDS", TOOLS_POSITION_X, TOOLS_POSITION_Y + 3);
 
     drawString(selectedMode == MODE_ALL ? COLOR_SELECTED : COLOR_UNSELECTED, " ALL", MODES_POSITION_X, MODES_POSITION_Y + 0);
     drawString(selectedMode == MODE_CHAR ? COLOR_SELECTED : COLOR_UNSELECTED, " ASCII", MODES_POSITION_X, MODES_POSITION_Y + 1);
     drawString(selectedMode == MODE_COLOR ? COLOR_SELECTED : COLOR_UNSELECTED, " COLOR", MODES_POSITION_X, MODES_POSITION_Y + 2);
+    drawString(selectedMode == MODE_OPACITY ? COLOR_SELECTED : COLOR_UNSELECTED, " OPACITY", MODES_POSITION_X, MODES_POSITION_Y + 3);
 
     int highlight = (commandHighlightedTimer > 0);
     
@@ -281,12 +289,20 @@ int tryLoadSprite(int slot)
         fread(&drawAreaWidth, sizeof(int), 1, file);
         fread(&drawAreaHeight, sizeof(int), 1, file);
         
+        fread(&spritePivots[slot * 2 + 0], sizeof(int), 1, file);
+        fread(&spritePivots[slot * 2 + 1], sizeof(int), 1, file);
+        
+        fread(&spriteBounds[slot * 4 + 0], sizeof(int), 1, file);
+        fread(&spriteBounds[slot * 4 + 1], sizeof(int), 1, file);
+        fread(&spriteBounds[slot * 4 + 2], sizeof(int), 1, file);
+        fread(&spriteBounds[slot * 4 + 3], sizeof(int), 1, file);        
+        
         for(int y = 0; y < drawAreaHeight; y++)
         {
             for(int x = 0; x < drawAreaWidth; x++)
             {
-                fread(&sprite[slot][y][x].character, sizeof(char), 1, file);
-                fread(&sprite[slot][y][x].color, sizeof(int), 1, file);
+                fread(&spriteCells[slot][y][x].character, sizeof(char), 1, file);
+                fread(&spriteCells[slot][y][x].color, sizeof(int), 1, file);
             }
         }
 
@@ -319,12 +335,20 @@ int trySaveSprite(int slot)
         fwrite(&drawAreaWidth, sizeof(int), 1, file);
         fwrite(&drawAreaHeight, sizeof(int), 1, file);
         
+        fwrite(&spritePivots[slot * 2 + 0], sizeof(int), 1, file);
+        fwrite(&spritePivots[slot * 2 + 1], sizeof(int), 1, file);
+        
+        fwrite(&spriteBounds[slot * 4 + 0], sizeof(int), 1, file);
+        fwrite(&spriteBounds[slot * 4 + 1], sizeof(int), 1, file);
+        fwrite(&spriteBounds[slot * 4 + 2], sizeof(int), 1, file);
+        fwrite(&spriteBounds[slot * 4 + 3], sizeof(int), 1, file);
+        
         for(int y = 0; y < drawAreaHeight; y++)
         {
             for(int x = 0; x < drawAreaWidth; x++)
             {
-                fwrite(&sprite[slot][y][x].character, sizeof(char), 1, file);
-                fwrite(&sprite[slot][y][x].color, sizeof(int), 1, file);
+                fwrite(&spriteCells[slot][y][x].character, sizeof(char), 1, file);
+                fwrite(&spriteCells[slot][y][x].color, sizeof(int), 1, file);
             }
         }
 
@@ -359,7 +383,7 @@ int main(int argc, char* argv[])
     
     resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
     
-    int exit = 0;
+    int quit = 0;
     
     cursorChar = 'O';
     cursorColor = MAKE_COLOR(255, 255, 255);
@@ -372,6 +396,7 @@ int main(int argc, char* argv[])
     selectedGreenLevel = COLOR_PALETTE1_HEIGHT - 1;
     selectedBlueLevel = COLOR_PALETTE2_WIDTH - 1;
     selectedAsciiLevel = '#' - ASCII_FIRST;
+    selectedOpacity = 1;
     
     commandHighlighted = 0;
     commandHighlightedTimer = 0;
@@ -379,17 +404,25 @@ int main(int argc, char* argv[])
     
     for(int s = 0; s < SLOTS_COUNT; s++)
     {
-        sprite[s] = (ScreenCell**)malloc(sizeof(ScreenCell*) * drawAreaHeight);
+        spriteCells[s] = (SpriteCell**)malloc(sizeof(SpriteCell*) * drawAreaHeight);
         for(int i = 0; i < drawAreaHeight; i ++)
         { 
-            sprite[s][i] = (ScreenCell*)malloc(sizeof(ScreenCell) * drawAreaWidth);
+            spriteCells[s][i] = (SpriteCell*)malloc(sizeof(SpriteCell) * drawAreaWidth);
             
             for(int j = 0; j < drawAreaWidth; j++)
             {
-                sprite[s][i][j].color = 0;
-                sprite[s][i][j].character = ' ';
+                spriteCells[s][i][j].color = 0;
+                spriteCells[s][i][j].character = ' ';
             }
         }
+        
+        spritePivots[s * 2 + 0] = drawAreaWidth / 2;
+        spritePivots[s * 2 + 1] = drawAreaHeight / 2;
+        
+        spriteBounds[s * 4 + 0] = 0;
+        spriteBounds[s * 4 + 1] = 0;
+        spriteBounds[s * 4 + 2] = drawAreaWidth;
+        spriteBounds[s * 4 + 3] = drawAreaHeight;
     }
     
     for(int i = 0; i < SLOTS_COUNT; i++)
@@ -397,12 +430,11 @@ int main(int argc, char* argv[])
         tryLoadSprite(i);
     }
         
-    while(!exit)
+    while(!quit)
     {
-        
         if(isKeyDown(KEY_ESC))
         {
-            exit = 1;
+            quit = 1;
         }
         else if(isKeyDown(KEY_F1))
         {
@@ -410,10 +442,19 @@ int main(int argc, char* argv[])
             {
                 for(int x = 0; x < drawAreaWidth; x++)
                 {
-                    sprite[selectedSlot][y][x].character = ' ';
-                    sprite[selectedSlot][y][x].color = 0;                    
+                    spriteCells[selectedSlot][y][x].character = ' ';
+                    spriteCells[selectedSlot][y][x].color = 0;                    
                 }
             }
+            
+            spritePivots[selectedSlot * 2 + 0] = drawAreaWidth / 2;
+            spritePivots[selectedSlot * 2 + 1] = drawAreaHeight / 2;
+            
+            spriteBounds[selectedSlot * 4 + 0] = 0;
+            spriteBounds[selectedSlot * 4 + 1] = 0;
+            spriteBounds[selectedSlot * 4 + 2] = drawAreaWidth;
+            spriteBounds[selectedSlot * 4 + 3] = drawAreaHeight;
+            
             
             commandHighlighted = COMMAND_NEW;
             commandHighlightedError = 0;
@@ -497,24 +538,52 @@ int main(int argc, char* argv[])
                 
                 int canChangeCharacter = (selectedMode == MODE_ALL || selectedMode == MODE_CHAR);
                 int canChangeColor = (selectedMode == MODE_ALL || selectedMode == MODE_COLOR);
+                int canChangeOpacity = (selectedMode == MODE_ALL || selectedMode == MODE_OPACITY);
+                int isOpacityMode = (selectedMode == MODE_OPACITY);
 
-                if(mouseLeftPressed)
-                {  
-                    if(selectedTool == TOOL_DRAW)
-                    {
+
+                if(selectedTool == TOOL_DRAW)
+                {
+                    if(mouseLeftPressed)
+                    {  
                         int r = (int)(selectedRedLevel * (255.0f / COLOR_PALETTE1_WIDTH));
                         int g = (int)(selectedGreenLevel * (255.0f / COLOR_PALETTE1_HEIGHT));
                         int b = (int)(selectedBlueLevel * (255.0f / COLOR_PALETTE2_WIDTH));
                         
                         char c = ASCII_FIRST + selectedAsciiLevel;                
                         
-                        if(canChangeColor) { sprite[s][y][x].color = MAKE_COLOR(r, g, b); }
-                        if(canChangeCharacter) { sprite[s][y][x].character = c; }
+                        if(canChangeColor)
+                        {
+                            int color = spriteCells[s][y][x].color;
+                            
+                            int opacity = color >> 24;
+                            
+                            spriteCells[s][y][x].color = MAKE_COLOR(r, g, b) | (opacity << 24);
+                        }
+                        if(canChangeCharacter) { spriteCells[s][y][x].character = c; }
+                        if(canChangeOpacity)
+                        {
+                            int color = spriteCells[s][y][x].color;
+                            
+                            if(selectedOpacity) { color |= (1 << 24); }
+                            else { color &= ~(1 << 24); }
+                            
+                            spriteCells[s][y][x].color = color;
+                        }
                     }
-                    else // selectedTool == TOOL_PICK
+                    else
                     {
-                        int color = sprite[s][y][x].color;
-                        int c = sprite[s][y][x].character;
+                        if(canChangeColor) { spriteCells[s][y][x].color = MAKE_COLOR(0, 0, 0); }
+                        if(canChangeCharacter) { spriteCells[s][y][x].character = ' '; }                        
+                        if(canChangeOpacity) { spriteCells[s][y][x].color &= ~(1 << 24); }                        
+                    }
+                }
+                else if(selectedTool == TOOL_PICK)
+                {
+                    if(mouseLeftPressed)
+                    {                      
+                        int color = spriteCells[s][y][x].color;
+                        int c = spriteCells[s][y][x].character;
                         
                         if(canChangeCharacter) { selectedAsciiLevel = c - ASCII_FIRST; }
                         if(canChangeColor)
@@ -522,16 +591,62 @@ int main(int argc, char* argv[])
                             selectedGreenLevel = (int)(GET_COLOR_G(color) / (255.0f / COLOR_PALETTE1_HEIGHT));
                             selectedBlueLevel = (int)(GET_COLOR_B(color) / (255.0f / COLOR_PALETTE2_WIDTH));
                         }
-                        
-                        
+                        if(canChangeOpacity) { selectedOpacity = (color & (1 << 24)) != 0 ? 1 : 0; }
                     }
                 }
-                else
+                else if(selectedTool == TOOL_PIVOT)
                 {
-                    if(canChangeColor) { sprite[s][y][x].color = MAKE_COLOR(0, 0, 0); }
-                    if(canChangeCharacter) { sprite[s][y][x].character = ' '; }
+                    if(mouseLeftPressed)
+                    {                      
+                        spritePivots[selectedSlot * 2 + 0] = x;
+                        spritePivots[selectedSlot * 2 + 1] = y;
+                    }
+                }
+                else if(selectedTool == TOOL_BOUNDS)
+                {
+                    int bX = spriteBounds[selectedSlot * 4 + 0];
+                    int bY = spriteBounds[selectedSlot * 4 + 1]; 
+                    int bW = spriteBounds[selectedSlot * 4 + 2];
+                    int bH = spriteBounds[selectedSlot * 4 + 3];
+                        
+                    if(mouseLeftPressed)
+                    {
+                        if(x <= bX + bW - 1)
+                        {
+                            spriteBounds[selectedSlot * 4 + 0] = x;
+                            spriteBounds[selectedSlot * 4 + 2] = bW - (x - bX);
+                            if(spriteBounds[selectedSlot * 4 + 2] <= 0) { printf("NEGATIVE Width"); exit(-1); }
+                        }
+                        else
+                        {
+                            spriteBounds[selectedSlot * 4 + 0]  = bX;                            
+                            spriteBounds[selectedSlot * 4 + 2] = 1;
+                        }
+                        
+                        if(y <= bY + bH - 1)
+                        {
+                            spriteBounds[selectedSlot * 4 + 1]  = y;
+                            spriteBounds[selectedSlot * 4 + 3] = bH - (y - bY);
+                            if(spriteBounds[selectedSlot * 4 + 3] <= 0) { printf("NEGATIVE Height"); exit(-1); }
+                        }
+                        else
+                        {
+                            spriteBounds[selectedSlot * 4 + 1]  = bY;                            
+                            spriteBounds[selectedSlot * 4 + 3] = 1;
+                        }
+                        
+                        // if(x + bW >= drawAreaWidth) { bW = drawAreaWidth - x; }
+                        // if(y + bH >= drawAreaHeight) { bH = drawAreaHeight - y; }
+                        
+                    }
+                    else
+                    {
+                        spriteBounds[selectedSlot * 4 + 2] = x < bX ? 1 : x - bX + 1;
+                        spriteBounds[selectedSlot * 4 + 3] = y < bY ? 1 : y - bY + 1;                        
+                    }
                     
                 }
+
             }
 
         } 
@@ -562,6 +677,15 @@ int main(int argc, char* argv[])
                 selectedMode = cursorCellY - MODES_POSITION_Y;
             }            
         }        
+        else if(isInsideRect(cursorCellX, cursorCellY,
+                             OPAQUE_POSITION_X, OPAQUE_POSITION_Y,
+                             OPAQUE_WIDTH, OPAQUE_HEIGHT))
+        {
+            if(mouseLeftPressed)
+            {            
+                selectedOpacity = 1 - (cursorCellX - OPAQUE_POSITION_X) / (OPAQUE_WIDTH / 2);
+            }            
+        }        
 
         if(commandHighlightedTimer - (1.0f / SCREEN_FPS) >= 0) { commandHighlightedTimer -= (1.0f / SCREEN_FPS); }
         else
@@ -574,6 +698,54 @@ int main(int argc, char* argv[])
         clearScreen();
         
         drawUI();
+        
+        if(selectedMode == MODE_OPACITY)
+        {
+            for(int y = 0; y < drawAreaHeight; y++)
+            {
+                for(int x = 0; x < drawAreaWidth; x++)
+                {
+                    if((spriteCells[selectedSlot][y][x].color & (1 << 24)) == 0)
+                    {
+                        setScreenCell(drawAreaPosX + x, drawAreaPosY + y, MAKE_COLOR(255, 0, 255), '#');
+                    }
+                }
+            }
+        }
+        
+        if(selectedTool == TOOL_BOUNDS)
+        {
+            int dX = drawAreaPosX;
+            int dY = drawAreaPosY;
+            int bX = spriteBounds[selectedSlot * 4 + 0];
+            int bY = spriteBounds[selectedSlot * 4 + 1];
+            int bW = spriteBounds[selectedSlot * 4 + 2];
+            int bH = spriteBounds[selectedSlot * 4 + 3];
+            
+            setScreenCell(dX + bX,          dY + bY, COLOR_SELECTED, '+');
+            setScreenCell(dX + bX + bW - 1, dY + bY, COLOR_SELECTED, '+');
+            setScreenCell(dX + bX,          dY + bY + bH - 1, COLOR_SELECTED, '+');
+            setScreenCell(dX + bX + bW - 1, dY + bY + bH - 1, COLOR_SELECTED, '+');
+            
+            for(int x = 1; x - 1 < bW - 2; x ++)
+            {
+                setScreenCell(dX + bX + x, dY + bY, COLOR_SELECTED, '-');
+                setScreenCell(dX + bX + x, dY + bY + bH - 1, COLOR_SELECTED, '-');
+            }
+            
+            for(int y = 1; y - 1 < bH - 2; y ++)
+            {
+                setScreenCell(dX + bX,          dY + bY + y, COLOR_SELECTED, '|');
+                setScreenCell(dX + bX + bW - 1, dY + bY + y, COLOR_SELECTED, '|');
+            }
+        }
+
+        if(selectedTool == TOOL_PIVOT || selectedTool == TOOL_BOUNDS)
+        {
+            setScreenCell(drawAreaPosX + spritePivots[selectedSlot * 2 + 0],
+                          drawAreaPosY + spritePivots[selectedSlot * 2 + 1], COLOR_SELECTED, '+');
+        }
+        
         
         setScreenCell(cursorCellX, cursorCellY, cursorColor, cursorChar);
         
