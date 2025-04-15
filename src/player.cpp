@@ -85,16 +85,16 @@ void updatePlayer()
         if(nextPosY < 0) { nextPosY = 0; }
         else if(nextPosY > C2W(MAP_HEIGHT)) { nextPosY = C2W(MAP_HEIGHT); }
         
-        if(CTYPE(getMapCell(W2C(nextPosX), W2C(nextPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
+        if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
         {
             playerPosX = nextPosX;
             playerPosY = nextPosY;
         }
-        else if(CTYPE(getMapCell(W2C(playerPosX), W2C(nextPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
+        else if(MAP_CELL_TYPE(getMapCell(0, W2C(playerPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
         {
             playerPosY = nextPosY;            
         }
-        else if(CTYPE(getMapCell(W2C(nextPosX), W2C(playerPosY), MAKE_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_FREE)
+        else if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(playerPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
         {
             playerPosX = nextPosX;            
         }
@@ -111,8 +111,23 @@ void updatePlayer()
 
 void initPlayer()
 {
-    playerPosX = C2W(3.5f);
-    playerPosY = C2W(9.5f);
+    int startCellX = 0;
+    int startCellY = 0;
+    for(int x = 0; x < MAP_WIDTH; x++)
+    {
+        for(int y = 0; y < MAP_HEIGHT; y++)
+        {
+            if(MAP_CELL_TYPE(maps[0][y][x]) == 2)
+            {
+                startCellX = x;
+                startCellY = y;
+            }
+        }
+        
+    }
+    
+    playerPosX = C2W(startCellX + 0.5f);
+    playerPosY = C2W(startCellY + 0.5f);
     
     playerAngle = 270.0f;
     

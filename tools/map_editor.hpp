@@ -1,5 +1,5 @@
-#ifndef _SPRITEEDITOR_HPP_
-#define _SPRITEEDITOR_HPP_
+#ifndef _MAPEDITOR_HPP_
+#define _MAPEDITOR_HPP_
 
 #include "common_editor.hpp"
 

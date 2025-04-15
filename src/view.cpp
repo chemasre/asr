@@ -284,18 +284,24 @@ void drawView()
         float viewDeviationX = screenDeviationX * viewScale;
         float viewDeviationAngle = atan2(viewDeviationX, VIEW_NEAR_DISTANCE) * RAD2DEG;
 
-        int hit = rayCast(playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);        
+        int hit = rayCast(0, playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);
+
+
 
         if(!hit)
         {
             normalizedDistance = 1;
+            
+            // Not well defined behaviour
+            normal = 0;
+            texture = 0;
+            u = 0;
         }
         else
         {
             normalizedDistance = distance / viewDistance;
         }
         
-       
         drawColumn(screenX, normalizedDistance, normal, texture, u);
         
         // if(screenX % 20 == 0)

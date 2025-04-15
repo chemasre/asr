@@ -1,0 +1,11 @@
+
+C:\Users\Sinestesia\Documents\GitHub\asr>cls
+
+C:\Users\Sinestesia\Documents\GitHub\asr>cd bin 
+
+C:\Users\Sinestesia\Documents\GitHub\asr\bin>main
+Failed to set console mode
+C:\Users\Sinestesia\Documents\GitHub\asr\bin>cd .. 
+
+C:\Users\Sinestesia\Documents\GitHub\asr>echo off 
+Goodbye

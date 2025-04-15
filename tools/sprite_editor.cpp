@@ -1,23 +1,9 @@
 #include "sprite_editor.hpp"
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <input.hpp>
-#include <menu.hpp>
-#include <ui.hpp>
-#include <sprites.hpp>
-#include <system.hpp>
-
-#define VERSION_STRING_SIZE 20
-#define VERSION_STRING_PATTERN "  v%d.%d.%d"
+#include "editor_utils.hpp"
 
 #define CELLS_WIDTH 70
 #define CELLS_HEIGHT 40
 
-#define COLOR_SELECTED MAKE_COLOR(255,255,255)
-#define COLOR_UNSELECTED MAKE_COLOR(127,127,127)
-#define COLOR_ERROR MAKE_COLOR(255,0,0)
 #define COLOR_OPAQUE MAKE_COLOR(255,0,0)
 
 #define SPRITE_FILE_PATTERN "sprite%02d.spr"
@@ -259,18 +245,6 @@ void drawUI()
     drawString(COLOR_UNSELECTED, "    BY    ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 3);
     drawString(COLOR_UNSELECTED, " JM SOLIS ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 4);
 
-}
-
-int isInsideRect(int pX, int pY, int rectX, int rectY, int rectW, int rectH)
-{
-    if(pX >= rectX && pX <= rectX + rectW - 1 && pY >= rectY && pY <= rectY + rectH - 1)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
 }
 
 int tryLoadSprite(int slot)

@@ -120,6 +120,8 @@ void resizeScreen(int windowWidth, int windowHeight)
 
 void drawString(int color, char s[], int x, int y)
 {
+    if(y < 0 || y > screenHeight - 1) { return; }
+    
     int i;
     i = 0;
     

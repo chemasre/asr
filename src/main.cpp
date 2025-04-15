@@ -6,6 +6,7 @@
 #include <game.hpp>
 #include <player.hpp>
 #include <map.hpp>
+#include <sprites.hpp>
 #include <textures.hpp>
 #include <view.hpp>
 #include <menu.hpp>
@@ -45,6 +46,8 @@ void main()
         
     initInput();
     initScreen();
+    initSprites();
+    initMap();
     initTextures();
     initView();
     initPlayer();

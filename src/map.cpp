@@ -1,27 +1,68 @@
 #include <map.hpp>
 
-int map[MAP_HEIGHT][MAP_WIDTH] = {
-                                     { 100, 100, 100, 101, 101, 100, 100, 100 },
-                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
-                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
-                                     { 100, 000, 000, 000, 000, 000, 000, 100 },
-                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
-                                     { 100, 100, 101, 000, 000, 101, 100, 100 },
-                                     { 100, 000, 101, 000, 000, 101, 000, 100 },
-                                     { 100, 000, 100, 000, 000, 100, 000, 100 },
-                                     { 100, 000, 000, 000, 000, 000, 000, 100 },
-                                     { 100, 100, 100, 000, 000, 100, 100, 100 },
-                                     { 100, 100, 100, 101, 101, 100, 100, 100 },
-                                 };
+// int map[MAP_HEIGHT][MAP_WIDTH] = {
+                                     // { 0x0100, 0x0100, 0x0100, 0x0101, 0x0101, 0x0100, 0x0100, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0100, 0x0000, 0x0000, 0x0100, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0100, 0x0000, 0x0000, 0x0100, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0100, 0x0000, 0x0000, 0x0100, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0100, 0x0101, 0x0000, 0x0000, 0x0101, 0x0100, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0101, 0x0000, 0x0000, 0x0101, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0100, 0x0000, 0x0000, 0x0100, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0100 },
+                                     // { 0x0100, 0x0100, 0x0100, 0x0000, 0x0000, 0x0100, 0x0100, 0x0100 },
+                                     // { 0x0100, 0x0100, 0x0100, 0x0101, 0x0101, 0x0100, 0x0100, 0x0100 },
+                                 // };
+                                 
+int maps[MAX_MAPS][MAP_HEIGHT][MAP_WIDTH];
 
-
-int getMapCell(int x, int y, int boundaryDefault)
+void initMap()
 {
-    if(x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) { return boundaryDefault; }
-    else { return map[y][x]; }
+    char fileName[MAX_PATH_LENGTH] = "";
+    char filePath[MAX_PATH_LENGTH] = "";
+    
+    for(int i = 0; i < MAX_MAPS; i++)
+    {
+        sprintf(fileName, MAP_FILENAME_PATTERN, i);
+        sprintf(filePath, "%s\\%s", MAP_DIRECTORY,fileName);
+
+        FILE* mapFile = fopen(filePath, "rb");
+        
+        ASSERT(mapFile != 0, "Cannot open map")
+        
+        int w;
+        int h;
+        
+        fread(&w, sizeof(int), 1, mapFile);
+        fread(&h, sizeof(int), 1, mapFile);
+        
+        ASSERT(w == MAP_WIDTH && h == MAP_HEIGHT, "Map size doesn't match")
+        
+        for(int y = 0; y < h; y ++)
+        {
+            for(int x = 0; x < w; x ++)
+            {
+                fread(&maps[i][y][x], sizeof(int), 1, mapFile);    
+            }
+            
+        }
+        
+        printf("Loaded map %s\n", filePath);
+        
+        fclose(mapFile);
+    }
+    
+   
 }
 
-int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, int *tex, float *u)
+
+int getMapCell(int m, int x, int y, int boundaryDefault)
+{
+    if(x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) { return boundaryDefault; }
+    else { return maps[m][y][x]; }
+}
+
+int rayCastStep(int m, float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, int *tex, float *u)
 {
     int result;
     int prevMapX = (int)prevPosX;
@@ -29,10 +70,10 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
     int nextMapX = (int)nextPosX;
     int nextMapY = (int)nextPosY;
     
-    int previousCell = getMapCell(prevMapX, prevMapY, MAKE_CELL(MAP_CELL_TYPE_WALL, 0));
-    int nextCell = getMapCell(nextMapX, nextMapY, MAKE_CELL(MAP_CELL_TYPE_WALL, 0));
+    int previousCell = getMapCell(m, prevMapX, prevMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0));
+    int nextCell = getMapCell(m, nextMapX, nextMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0));
     
-    if(CTYPE(previousCell) == MAP_CELL_TYPE_FREE && CTYPE(nextCell) != MAP_CELL_TYPE_FREE)
+    if(MAP_CELL_TYPE(previousCell) != MAP_CELL_TYPE_WALL && MAP_CELL_TYPE(nextCell) == MAP_CELL_TYPE_WALL)
     {
         if(prevMapY < nextMapY)
         {
@@ -55,10 +96,10 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
             *u = 1 - fabs(nextPosY - (int)nextPosY);
         }
 
-        *tex = CTEX(nextCell);
+        *tex = MAP_CELL_PARAM(nextCell);
     }
     
-    if(CTYPE(nextCell) != MAP_CELL_TYPE_FREE)
+    if(MAP_CELL_TYPE(nextCell) == MAP_CELL_TYPE_WALL)
     {
         result = 1;
     }
@@ -70,7 +111,7 @@ int rayCastStep(float prevPosX, float prevPosY, float nextPosX, float nextPosY, 
     return result;
 }
 
-int rayCast(float posX, float posY, float angle, float rayStep, float rayDistance, float *hitDistance, float *hitNormal, int *hitTex, float *hitV)
+int rayCast(int m, float posX, float posY, float angle, float rayStep, float rayDistance, float *hitDistance, float *hitNormal, int *hitTex, float *hitV)
 {
     posX = W2C(posX);
     posY = W2C(posY);
@@ -105,7 +146,7 @@ int rayCast(float posX, float posY, float angle, float rayStep, float rayDistanc
         float dy = (rayNextY - posY);
         distance2 =  dx * dx + dy * dy;
         
-        if(rayCastStep(rayX, rayY, rayNextX, rayNextY, &normal, &tex, &v))
+        if(rayCastStep(m, rayX, rayY, rayNextX, rayNextY, &normal, &tex, &v))
         {
             collision = 1;
         }

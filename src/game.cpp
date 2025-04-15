@@ -39,11 +39,11 @@ void drawHud()
     {
         for(int x = 0; x < MAP_WIDTH; x++)
         {
-            textBuffer[x] = map[y][x] == 0 ? ' ' : 'W';
+            textBuffer[x] = MAP_CELL_TYPE(maps[0][y][x]) != MAP_CELL_TYPE_WALL ? ' ' : 'W';
         }
         
         textBuffer[MAP_WIDTH] = '\0';
-
+        
         drawString(HUD_COLOR, textBuffer, windowX + 1, windowY + 1 + y);
     }
     
