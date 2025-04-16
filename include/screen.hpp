@@ -15,6 +15,9 @@
 #define GET_COLOR_G(c) (0xFF & ((c) >> 8))
 #define GET_COLOR_B(c) (0xFF & (c))
 
+#define IN_SCREEN_AREA_RANGE(x,ax,aw) ( (x) >= (ax) && (x) <= ((ax) + (aw) - 1) )
+#define IN_SCREEN_AREA(x,y,ax,ay,aw,ah) (IN_SCREEN_AREA_RANGE(x,ax,aw) && IN_SCREEN_AREA_RANGE(y,ay,ah))
+
 
 struct ScreenCell
 {
@@ -32,6 +35,10 @@ extern ScreenCell** screen;
 extern ScreenCell* screenLine;
 
 void setScreenTitle(char t[]);
+void enableClipArea();
+void disableClipArea();
+void setClipArea(int x, int y, int w, int h);
+
 void drawString(int color, char s[], int x, int y);
 void setScreenCursorPosition(int x, int y);
 void setScreenCell(int cellX, int cellY, int color, char c);

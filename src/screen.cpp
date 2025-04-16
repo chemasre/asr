@@ -30,6 +30,12 @@ char showScreenBuffer[1024 * 1024];
 
 int frameCounter;
 
+int clipAreaEnabled;
+int clipAreaX;
+int clipAreaY;
+int clipAreaW;
+int clipAreaH;
+
 
 void resizeScreen(int windowWidth, int windowHeight)
 {
@@ -140,6 +146,24 @@ void drawString(int color, char s[], int x, int y)
 
 }
 
+void enableClipArea()
+{
+    clipAreaEnabled = 1;
+}
+
+void disableClipArea()
+{
+    clipAreaEnabled = 0;
+}
+
+void setClipArea(int x, int y, int w, int h)
+{
+    clipAreaX = x;
+    clipAreaY = y;
+    clipAreaW = w;
+    clipAreaH = h;
+}
+
 void setScreenCursorPosition(int x, int y)
 {
     COORD coord;    
@@ -151,6 +175,8 @@ void setScreenCursorPosition(int x, int y)
 
 void setScreenCell(int cellX, int cellY, int color, char c)
 {
+    if(clipAreaEnabled && !IN_SCREEN_AREA(cellX, cellY, clipAreaX, clipAreaY, clipAreaW, clipAreaH)) { return; }
+    
     if(cellX >= 0 && cellX < screenWidth && cellY >= 0 && cellY < screenHeight)
     {
         sprintf(screen[cellY][cellX].string, "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(color), GET_COLOR_G(color), GET_COLOR_B(color), c);
@@ -187,7 +213,9 @@ void fillScreenArea(int areaX, int blankAreaY, int areaWidth, int blankAreaHeigh
     {
         for(int x = areaX; x < areaX + areaWidth; x++)
         {
-            if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight)
+            int clip = (clipAreaEnabled && !IN_SCREEN_AREA(x,y,clipAreaX,clipAreaY,clipAreaW,clipAreaH));
+            
+            if(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight && !clip)
             {                
                 sprintf(screen[y][x].string,  "\033[38;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(color), GET_COLOR_G(color), GET_COLOR_B(color), c);
                 
@@ -214,10 +242,16 @@ void clearScreen()
     {
         for(int x = 0; x < screenWidth; x++)
         {
-            sprintf(screen[y][x].string,  "\033[48;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(clearColor), GET_COLOR_G(clearColor), GET_COLOR_B(clearColor), ' ');
+            int clip = (clipAreaEnabled && !IN_SCREEN_AREA(x,y,clipAreaX,clipAreaY,clipAreaW,clipAreaH));
             
-            screen[y][x].character = ' ';
-            screen[y][x].color = clearColor;            
+            if(!clip)
+            {
+                sprintf(screen[y][x].string,  "\033[48;2;%d;%d;%dm%c\033[0m", GET_COLOR_R(clearColor), GET_COLOR_G(clearColor), GET_COLOR_B(clearColor), ' ');
+                
+                screen[y][x].character = ' ';
+                screen[y][x].color = clearColor;            
+            }
+            
         }
     }
     

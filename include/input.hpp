@@ -16,6 +16,7 @@
 #define KEY_8 '8'
 #define KEY_9 '9'
 #define KEY_0 '0'
+#define KEY_M 'M'
 #define KEY_PLUS VK_OEM_PLUS
 #define KEY_MINUS VK_OEM_MINUS
 #define KEY_F1 VK_F1

@@ -158,6 +158,7 @@ void main()
         {
             updatePlayer();
             updateView();
+            updateHud();
             
             if(isKeyDown(KEY_ESC))
             {
