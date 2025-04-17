@@ -351,6 +351,7 @@ int main(int argc, char* argv[])
     
     initInput();
     initScreen();
+    initUI();
     initMenu();
     
     setScreenTitle("Sprite editor");

@@ -1,4 +1,4 @@
-#include "game.hpp"
+#include "hud.hpp"
 #include <screen.hpp>
 #include <ui.hpp>
 #include <player.hpp>
@@ -11,7 +11,12 @@ char directions[DIRECTIONS] = { '^', '/', '>', '\\', 'V', '/', '<', '\\' };
 
 char textBuffer[1024];
 
-int minimapScale = 2;
+int minimapScale;
+
+void initHud()
+{
+    minimapScale = 2;
+}
 
 void updateHud()
 {

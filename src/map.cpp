@@ -15,6 +15,7 @@
                                  // };
                                  
 int maps[MAX_MAPS][MAP_HEIGHT][MAP_WIDTH];
+int mapParams[MAX_MAPS][MAP_PARAMS_COUNT];
 
 void initMap()
 {
@@ -29,6 +30,17 @@ void initMap()
         FILE* mapFile = fopen(filePath, "rb");
         
         ASSERT(mapFile != 0, "Cannot open map")
+        
+        int params;
+        
+        fread(&params, sizeof(int), 1, mapFile);
+
+        ASSERT(params == MAP_PARAMS_COUNT, "Map params count doesn't match")
+        
+        for(int j = 0;j < params; j++)
+        {
+            fread(&mapParams[i][j], sizeof(int), 1, mapFile);
+        }
         
         int w;
         int h;
@@ -60,6 +72,11 @@ int getMapCell(int m, int x, int y, int boundaryDefault)
 {
     if(x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) { return boundaryDefault; }
     else { return maps[m][y][x]; }
+}
+
+int getMapParam(int m, int p)
+{
+    return mapParams[m][p];
 }
 
 int rayCastStep(int m, float prevPosX, float prevPosY, float nextPosX, float nextPosY, float *normal, int *tex, float *u)

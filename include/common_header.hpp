@@ -12,6 +12,8 @@
 #define DEG2RAD (2.0f * PI / 360.0f)
 #define RAD2DEG (360.0f / (2.0f * PI))
 
+#define MAX(a,b) ((a)>(b) ? (a) : (b))
+
 #define ASSERT(x, m) { if(!(x)) { printf(m); exit(-1); } }
 
 #define MAX_PATH_LENGTH 256

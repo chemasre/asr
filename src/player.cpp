@@ -6,35 +6,116 @@ float playerPosX;
 float playerPosY;
 float playerAngle;
 
+int playerControlMode;
+float mouseSensitivity;
+
 float rotateSpeed = 200;
 float moveSpeed = C2W(2.5f);
 float strafeSpeed = C2W(2.5f);
+float runMoveMultiplier = 2.0f;
+float runStrafeMultiplier = 2.0f;
 
 
 void updatePlayer()
 {
-    int strafe = isKeyPressed(VK_MENU);
-    int moveForward = isKeyPressed('W');
-    int moveBackwards = isKeyPressed('S');
-    int left = isKeyPressed('A');
-    int right = isKeyPressed('D');    
-    int rotateLeft = left && !strafe;
-    int rotateRight = right && !strafe;
-    int moveLeft = left && strafe;
-    int moveRight = right && strafe;
+    int mouseDeltaX;
+    int mouseDeltaY;
+    getMouseDelta(&mouseDeltaX, &mouseDeltaY);
+    
+    int keyLeft = isKeyPressed(KEY_A) || isKeyPressed(KEY_LEFT);
+    int keyRight = isKeyPressed(KEY_D) || isKeyPressed(KEY_RIGHT);
+    int keyForward = isKeyPressed(KEY_W) || isKeyPressed(KEY_UP);
+    int keyBackwards = isKeyPressed(KEY_S) || isKeyPressed(KEY_DOWN);
+    int keyStrafe = isKeyPressed(KEY_ALT);
+    int keyRun = isKeyPressed(KEY_SHIFT);
+    
+    float mouseRotateScale = 90.0f / (screenHeight * fontHeight) * (mouseSensitivity - 0.5f + 1.0f);
+    float mouseMoveScale = C2W(2.0f) / (screenHeight * fontHeight) * (mouseSensitivity - 0.5f + 1.0f);    
+    float mouseStrafeScale = C2W(3.0f) / (screenHeight * fontHeight) * (mouseSensitivity - 0.5f + 1.0f);
+
+    int moveForward = 0;
+    int moveBackwards = 0;
+    float moveAmount = 0;
+    
+    int strafeLeft = 0;
+    int strafeRight = 0;
+    float strafeAmount = 0;
+    
+    int rotateLeft = 0;
+    int rotateRight = 0;
+    float rotateAmount = 0;
+    
+    if(playerControlMode == PLAYER_CONTROL_MODE_CLASSIC)
+    {
+        moveForward = (mouseDeltaY < 0 || keyForward);
+        moveBackwards = (mouseDeltaY > 0 || keyBackwards);
+        
+        float mouseMoveAmount = fabs(mouseDeltaY) * mouseMoveScale;
+        float keyMoveAmount = moveSpeed * (1.0f / SCREEN_FPS);     
+
+        moveAmount = MAX(mouseMoveAmount, keyMoveAmount);
+        
+        if(!keyStrafe)
+        {
+            rotateLeft = (mouseDeltaX < 0 || keyLeft);
+            rotateRight = (mouseDeltaX > 0 || keyRight);
+            
+            float mouseRotateAmount = fabs(mouseDeltaX) * mouseRotateScale;
+            float keyRotateAmount = rotateSpeed * (1.0f / SCREEN_FPS);
+            
+            rotateAmount = MAX(mouseRotateAmount, keyRotateAmount);
+        }
+        else
+        {
+            strafeLeft = (mouseDeltaX < 0 || keyLeft);
+            strafeRight = (mouseDeltaX > 0 || keyRight);
+
+            float mouseStrafeAmount = fabs(mouseDeltaX) * mouseStrafeScale;
+            float keyStrafeAmount = strafeSpeed * (1.0f / SCREEN_FPS);
+            
+            strafeAmount = MAX(mouseStrafeAmount, keyStrafeAmount);
+
+        }
+        
+    }
+    else // playerControlMode == PLAYER_CONTROL_MODE_MODERN
+    {
+        moveForward = keyForward;
+        moveBackwards = keyBackwards;
+        
+        moveAmount = moveSpeed * (1.0f / SCREEN_FPS);
+        
+        rotateLeft = (mouseDeltaX < 0);
+        rotateRight = (mouseDeltaX > 0);
+        
+        rotateAmount = fabs(mouseDeltaX) * mouseRotateScale;
+
+        strafeLeft = keyLeft;
+        strafeRight = keyRight;
+        
+        strafeAmount = strafeSpeed * (1.0f / SCREEN_FPS);
+        
+    }
+    
+    if(keyRun)
+    {
+        moveAmount *= runMoveMultiplier;
+        strafeAmount *= runStrafeMultiplier;
+    }
+    
 
     if(rotateLeft)
     {
-        playerAngle -= rotateSpeed * (1.0f / SCREEN_FPS);
+        playerAngle -= rotateAmount;
         if(playerAngle < 0) { playerAngle += 360.0f; }
     }
     else if(rotateRight)
     {
-        playerAngle += rotateSpeed * (1.0f / SCREEN_FPS);
+        playerAngle += rotateAmount;
         if(playerAngle >= 360.0f) { playerAngle -= 360.0f; }
     }
     
-    if(moveForward || moveBackwards || moveLeft || moveRight)
+    if(moveForward || moveBackwards || strafeLeft || strafeRight)
     {
         
         float nextPosX;
@@ -45,8 +126,14 @@ void updatePlayer()
         
         if(moveForward || moveBackwards)
         {
-            float stepForwardX = cos(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);
-            float stepForwardY = sin(playerAngle * DEG2RAD) * moveSpeed * (1.0f / SCREEN_FPS);
+            float stepForwardX;
+            float stepForwardY;
+            
+            float cosAngle = cos(playerAngle * DEG2RAD);
+            float sinAngle = sin(playerAngle * DEG2RAD);
+
+            stepForwardX = cosAngle * moveAmount;
+            stepForwardY = sinAngle * moveAmount;
 
             if(moveForward)
             {
@@ -60,13 +147,18 @@ void updatePlayer()
             }
         }
 
-        
-        if(moveLeft || moveRight)
+        if(strafeLeft || strafeRight)
         {
-            float stepLateralX = cos((playerAngle + 90) * DEG2RAD) * strafeSpeed * (1.0f / SCREEN_FPS);;
-            float stepLateralY = sin((playerAngle + 90) * DEG2RAD) * strafeSpeed * (1.0f / SCREEN_FPS);;
+            float stepLateralX;
+            float stepLateralY;
             
-            if(moveRight)
+            float cosAngle = cos((playerAngle + 90) * DEG2RAD);
+            float sinAngle = sin((playerAngle + 90) * DEG2RAD);
+            
+            stepLateralX = cosAngle * strafeAmount;
+            stepLateralY = sinAngle * strafeAmount;
+
+            if(strafeRight)
             {
                 nextPosX += stepLateralX;
                 nextPosY += stepLateralY;
@@ -110,7 +202,7 @@ void updatePlayer()
 }
 
 void initPlayer()
-{
+{    
     int startCellX = 0;
     int startCellY = 0;
     for(int x = 0; x < MAP_WIDTH; x++)
@@ -130,7 +222,9 @@ void initPlayer()
     playerPosY = C2W(startCellY + 0.5f);
     
     playerAngle = 270.0f;
-    
+ 
+    playerControlMode = PLAYER_CONTROL_MODE_CLASSIC; 
+    mouseSensitivity = 0.5f;
 }
 
 int getPlayerDirection()

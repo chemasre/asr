@@ -13,7 +13,7 @@
 #define MINIMAP_COLOR MAKE_COLOR(255,157,111)
 #define MINIMAP_PLAYER_COLOR MAKE_COLOR(255,204,111)
 
-
+void initHud();
 void updateHud();
 void drawHud();
 
