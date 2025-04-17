@@ -59,14 +59,21 @@ void resizeScreen(int windowWidth, int windowHeight)
     result = GetCurrentConsoleFont(consoleHandle, FALSE, &font);
     ASSERT(result, "Unable to get console font")
     
+	
     fontWidth = font.dwFontSize.X;
-    fontHeight = font.dwFontSize.Y; 
+    fontHeight = font.dwFontSize.Y;
+
+	// Windows Terminal doesn't report font size https://github.com/microsoft/terminal/issues/6395
+	if(fontWidth == 0) { fontWidth = fontHeight; }
 
     printf("font width %d height%d\n", fontWidth, fontHeight);
     
    
-    MoveWindow(windowHandle, screenMonitorWidth / 2 - windowWidth / 2, screenMonitorHeight / 2 - windowHeight / 2, windowWidth, windowHeight,  TRUE);
-    ShowScrollBar(windowHandle, SB_BOTH, FALSE);
+    result = MoveWindow(windowHandle, screenMonitorWidth / 2 - windowWidth / 2, screenMonitorHeight / 2 - windowHeight / 2, windowWidth, windowHeight,  TRUE);
+    ASSERT(result, "Unable to move window")
+	
+    result = ShowScrollBar(windowHandle, SB_BOTH, FALSE);
+    ASSERT(result, "Unable to show scroll bar")
     
     COORD coord = GetLargestConsoleWindowSize(consoleHandle);
     screenMaxWindowWidth = coord.X * fontWidth - 1;
@@ -114,6 +121,8 @@ void resizeScreen(int windowWidth, int windowHeight)
 
     SMALL_RECT consoleSize = {0, 0, (SHORT)(screenWidth), (SHORT)(screenHeight) };
     result = SetConsoleWindowInfo(consoleHandle, TRUE, &consoleSize);
+	
+	
     
     printf("w %d h %d\n", screenWidth, screenHeight);
     ASSERT(result, "Unable to set console size")

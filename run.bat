@@ -1,6 +1,6 @@
 cls
 cd bin
-main
+conhost.exe main.exe
 cd ..
 echo off
 cls
