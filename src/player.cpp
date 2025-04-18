@@ -1,4 +1,5 @@
 #include "player.hpp"
+#include <sprites.hpp>
 #include <map.hpp>
 #include <view.hpp>
 
@@ -199,6 +200,11 @@ void updatePlayer()
     
     
         
+}
+
+void drawPlayer()
+{
+	drawSprite(0, screenWidth / 2, screenHeight - 1);
 }
 
 void initPlayer()

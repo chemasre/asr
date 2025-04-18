@@ -38,8 +38,8 @@ void initSprites()
         {
             for(int x = 0; x < w; x ++)
             {
-                fread(&sprites[i].cells[y][x].color, sizeof(int), 1, sprFile);                
                 fread(&sprites[i].cells[y][x].character, sizeof(char), 1, sprFile);                
+                fread(&sprites[i].cells[y][x].color, sizeof(int), 1, sprFile);                
             }
             
         }
@@ -48,5 +48,27 @@ void initSprites()
         
         fclose(sprFile);
     }
+	
+}
+
+void drawSprite(int index, int posX, int posY)
+{
+	int pX = sprites[index].pivotX;
+	int pY = sprites[index].pivotY;
+	int bX = sprites[index].boundaryX;
+	int bY = sprites[index].boundaryY;
+	int bW = sprites[index].boundaryWidth;
+	int bH = sprites[index].boundaryHeight;
+	
+	for(int y = 0; y < bH; y++)
+	{
+		for(int x = 0; x < bW; x++)
+		{
+			SpriteCell c = sprites[index].cells[y + bY][x + bX];
+			int o = GET_COLOR_A(c.color);
+			
+			if(o != 0) { setScreenCell(posX - (pX - bX) + x, posY - (pY - bY) + y, c.color, c.character); }
+		}
+	}
 }
 

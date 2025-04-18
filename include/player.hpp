@@ -19,6 +19,7 @@ extern float mouseSensitivity;
 void initPlayer();
 int getPlayerDirection();
 void updatePlayer();
+void drawPlayer();
 
 
 #endif

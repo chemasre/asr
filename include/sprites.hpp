@@ -33,5 +33,6 @@ struct Sprite
 extern Sprite sprites[MAX_SPRITES];
 
 void initSprites();
+void drawSprite(int index, int posX, int posY);
 
 #endif

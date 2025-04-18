@@ -11,6 +11,7 @@
 #define SCREEN_MIN_WINDOW_HEIGHT 480
 
 #define MAKE_COLOR(r,g,b) (((0xFF & r) << 16) | ((0xFF & g) << 8) | (0xFF & b))
+#define GET_COLOR_A(c) (0xFF & ((c) >> 24))
 #define GET_COLOR_R(c) (0xFF & ((c) >> 16))
 #define GET_COLOR_G(c) (0xFF & ((c) >> 8))
 #define GET_COLOR_B(c) (0xFF & (c))

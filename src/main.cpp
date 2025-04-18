@@ -318,6 +318,7 @@ void main()
         }
         else // gameState == GAMESTATE_PLAYING
         {
+			drawPlayer();
             drawHud();
         }
         

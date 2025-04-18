@@ -3,6 +3,6 @@ cd bin
 conhost.exe main.exe
 cd ..
 echo off
-cls
+REM cls
 echo Goodbye
 echo on
