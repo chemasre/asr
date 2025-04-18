@@ -600,6 +600,26 @@ int main(int argc, char* argv[])
         
     while(!quit)
     {
+		if(!isKeyPressed(KEY_ALT))
+		{
+			if(isKeyPressed(KEY_0)) { selectedSlot = 0; }
+			else if(isKeyPressed(KEY_1)) { selectedSlot = 1; }
+			else if(isKeyPressed(KEY_2)) { selectedSlot = 2; }
+			else if(isKeyPressed(KEY_3)) { selectedSlot = 3; }
+			else if(isKeyPressed(KEY_4)) { selectedSlot = 4; }
+			else if(isKeyPressed(KEY_5)) { selectedSlot = 5; }
+			else if(isKeyPressed(KEY_6)) { selectedSlot = 6; }
+			else if(isKeyPressed(KEY_7)) { selectedSlot = 7; }
+			else if(isKeyPressed(KEY_8)) { selectedSlot = 8; }
+			else if(isKeyPressed(KEY_9)) { selectedSlot = 9; }
+			else if(isKeyPressed(KEY_A)) { selectedSlot = 10; }
+			else if(isKeyPressed(KEY_B)) { selectedSlot = 11; }
+			else if(isKeyPressed(KEY_C)) { selectedSlot = 12; }
+			else if(isKeyPressed(KEY_D)) { selectedSlot = 13; }
+			else if(isKeyPressed(KEY_E)) { selectedSlot = 14; }
+			else if(isKeyPressed(KEY_F)) { selectedSlot = 15; }
+		}
+		
         if(isKeyDown(KEY_ESC))
         {
             quit = 1;

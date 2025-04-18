@@ -16,6 +16,9 @@ float strafeSpeed = C2W(2.5f);
 float runMoveMultiplier = 2.0f;
 float runStrafeMultiplier = 2.0f;
 
+int animFrame;
+float animTimer;
+
 
 void updatePlayer()
 {
@@ -197,14 +200,20 @@ void updatePlayer()
         }
 
     }
-    
+	
+	if(moveForward || moveBackwards)
+	{
+		animTimer += 1.0f / SCREEN_FPS;
+		
+		if(animTimer > 1.0f / PLAYER_ANIM_FPS) { animFrame = (animFrame + 1) % 2; animTimer -= 1.0f / PLAYER_ANIM_FPS; }
+	}
     
         
 }
 
 void drawPlayer()
 {
-	drawSprite(0, screenWidth / 2, screenHeight - 1);
+	drawSprite(animFrame, screenWidth / 2, screenHeight - 1);
 }
 
 void initPlayer()
@@ -231,6 +240,9 @@ void initPlayer()
  
     playerControlMode = PLAYER_CONTROL_MODE_CLASSIC; 
     mouseSensitivity = 0.5f;
+	
+	animTimer = 0;
+	animFrame = 0;
 }
 
 int getPlayerDirection()

@@ -65,7 +65,7 @@ void drawSprite(int index, int posX, int posY)
 		for(int x = 0; x < bW; x++)
 		{
 			SpriteCell c = sprites[index].cells[y + bY][x + bX];
-			int o = GET_COLOR_A(c.color);
+			int o = GET_OPACITY(c.color);
 			
 			if(o != 0) { setScreenCell(posX - (pX - bX) + x, posY - (pY - bY) + y, c.color, c.character); }
 		}
