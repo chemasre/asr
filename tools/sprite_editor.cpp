@@ -5,6 +5,7 @@
 #define CELLS_HEIGHT 40
 
 #define COLOR_OPAQUE MAKE_COLOR(255,0,0)
+#define COLOR_BOUNDS MAKE_COLOR(0,255,255)
 
 #define SPRITE_FILE_PATTERN "sprite%02d.spr"
 
@@ -35,12 +36,13 @@
 #define OPAQUE_WIDTH 12
 #define OPAQUE_HEIGHT 1
 
-#define TOOL_DRAW 0
-#define TOOL_PICK 1
-#define TOOL_PIVOT 2
-#define TOOL_BOUNDS 3
+#define TOOL_SELECT 0
+#define TOOL_DRAW 1
+#define TOOL_PICK 2
+#define TOOL_PIVOT 3
+#define TOOL_BOUNDS 4
 
-#define TOOLS_COUNT 4
+#define TOOLS_COUNT 5
 #define TOOLS_WIDTH 12
 #define TOOLS_HEIGHT TOOLS_COUNT
 #define TOOLS_POSITION_X 3
@@ -62,30 +64,33 @@
 #define COMMAND_SAVE 2
 #define COMMAND_EXIT 3
 #define COMMAND_COPY 4
-#define COMMAND_PASTE 5
-
+#define COMMAND_CUT 5
+#define COMMAND_PASTE 6
+#define COMMAND_CLEAR 7
+#define COMMAND_MIRROR_X 8
+#define COMMAND_MIRROR_Y 9
 
 #define COMMAND_HIGHLIGHT_TIME (0.5f)
 
-#define COMMANDS_COUNT 6
+#define COMMANDS1_COUNT 4
 
-#define COMMANDS_WIDTH 12
-#define COMMANDS_HEIGHT COMMANDS_COUNT
-#define COMMANDS_POSITION_X 3
-#define COMMANDS_POSITION_Y (MODES_POSITION_Y + MODES_HEIGHT + 5)
+#define COMMANDS1_WIDTH 12
+#define COMMANDS1_HEIGHT COMMANDS1_COUNT
+#define COMMANDS1_POSITION_X 3
+#define COMMANDS1_POSITION_Y (MODES_POSITION_Y + MODES_HEIGHT + 5)
 
-#define ABOUT_WIDTH 12
-#define ABOUT_HEIGHT 5
-#define ABOUT_POSITION_X 3
-#define ABOUT_POSITION_Y (CELLS_HEIGHT - ABOUT_HEIGHT - 1)
+#define COMMANDS2_COUNT 6
+
+#define COMMANDS2_WIDTH 12
+#define COMMANDS2_HEIGHT COMMANDS2_COUNT
+#define COMMANDS2_POSITION_X 3
+#define COMMANDS2_POSITION_Y (COMMANDS1_POSITION_Y + COMMANDS1_HEIGHT + 5)
 
 #define SLOTS_COUNT 16
 #define SLOTS_WIDTH (SLOTS_COUNT * 2)
 #define SLOTS_HEIGHT 1
 #define SLOTS_POSITION_X (TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5)
 #define SLOTS_POSITION_Y (CELLS_HEIGHT - SLOTS_HEIGHT - 1)
-
-char versionString[VERSION_STRING_SIZE];
 
 char cursorChar;
 int cursorColor;
@@ -101,6 +106,11 @@ int selectedGreenLevel;
 int selectedBlueLevel;
 int selectedAsciiLevel;
 int selectedOpacity;
+
+int selectionPosX;
+int selectionPosY;
+int selectionWidth;
+int selectionHeight;
 
 int drawAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 int drawAreaPosY = 4;
@@ -144,10 +154,10 @@ void drawUI()
 
     drawWindow(MODES_POSITION_X - 1, MODES_POSITION_Y - 3, MODES_WIDTH + 2, MODES_HEIGHT + 4, "MODES", MAKE_COLOR(255, 255, 0));    
 
-    drawWindow(COMMANDS_POSITION_X - 1, COMMANDS_POSITION_Y - 3, COMMANDS_WIDTH + 2, COMMANDS_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
-    
-    drawWindow(ABOUT_POSITION_X - 1, ABOUT_POSITION_Y - 1, ABOUT_WIDTH + 2, ABOUT_HEIGHT + 2, NULL, COLOR_UNSELECTED);     
-    
+    drawWindow(COMMANDS1_POSITION_X - 1, COMMANDS1_POSITION_Y - 3, COMMANDS1_WIDTH + 2, COMMANDS1_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
+        
+    drawWindow(COMMANDS2_POSITION_X - 1, COMMANDS2_POSITION_Y - 3, COMMANDS2_WIDTH + 2, COMMANDS2_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
+
     char asciiLevel = 0;
     
     while(asciiLevel < ASCII_COUNT)
@@ -217,10 +227,11 @@ void drawUI()
         setScreenCell(SLOTS_POSITION_X + x * 2, SLOTS_POSITION_Y, color, x <= 9 ? '0' + x : 'A' + x - 10);
     }
     
-    drawString(selectedTool == TOOL_DRAW ? COLOR_SELECTED : COLOR_UNSELECTED, " DRAW", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
-    drawString(selectedTool == TOOL_PICK ? COLOR_SELECTED : COLOR_UNSELECTED, " PICK", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
-    drawString(selectedTool == TOOL_PIVOT ? COLOR_SELECTED : COLOR_UNSELECTED, " PIVOT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 2);
-    drawString(selectedTool == TOOL_BOUNDS ? COLOR_SELECTED : COLOR_UNSELECTED, " BOUNDS", TOOLS_POSITION_X, TOOLS_POSITION_Y + 3);
+    drawString(selectedTool == TOOL_SELECT ? COLOR_SELECTED : COLOR_UNSELECTED, " SELECT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
+    drawString(selectedTool == TOOL_DRAW ? COLOR_SELECTED : COLOR_UNSELECTED, " DRAW", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
+    drawString(selectedTool == TOOL_PICK ? COLOR_SELECTED : COLOR_UNSELECTED, " PICK", TOOLS_POSITION_X, TOOLS_POSITION_Y + 2);
+    drawString(selectedTool == TOOL_PIVOT ? COLOR_SELECTED : COLOR_UNSELECTED, " PIVOT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 3);
+    drawString(selectedTool == TOOL_BOUNDS ? COLOR_SELECTED : COLOR_UNSELECTED, " BOUNDS", TOOLS_POSITION_X, TOOLS_POSITION_Y + 4);
 
     drawString(selectedMode == MODE_ALL ? COLOR_SELECTED : COLOR_UNSELECTED, " ALL", MODES_POSITION_X, MODES_POSITION_Y + 0);
     drawString(selectedMode == MODE_CHAR ? COLOR_SELECTED : COLOR_UNSELECTED, " ASCII", MODES_POSITION_X, MODES_POSITION_Y + 1);
@@ -233,34 +244,111 @@ void drawUI()
     int highlightLoad = highlight && (commandHighlighted == COMMAND_LOAD);
     int highlightSave = highlight && (commandHighlighted == COMMAND_SAVE);
     int highlightCopy = highlight && (commandHighlighted == COMMAND_COPY);
+    int highlightCut = highlight && (commandHighlighted == COMMAND_CUT);
     int highlightPaste = highlight && (commandHighlighted == COMMAND_PASTE);
+    int highlightClear = highlight && (commandHighlighted == COMMAND_CLEAR);
+    int highlightMirrorX = highlight && (commandHighlighted == COMMAND_MIRROR_X);
+    int highlightMirrorY = highlight && (commandHighlighted == COMMAND_MIRROR_Y);
+	
     int highlightColor = commandHighlightedError ? COLOR_ERROR : COLOR_SELECTED; 
     
-    drawString(COLOR_SELECTED, " F1", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 0);
-    drawString(highlightNew ? highlightColor : COLOR_UNSELECTED, "NEW", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 0);
+    drawString(COLOR_SELECTED, " F1", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 0);
+    drawString(highlightNew ? highlightColor : COLOR_UNSELECTED, "NEW", COMMANDS1_POSITION_X + 6, COMMANDS1_POSITION_Y + 0);
 
-    drawString(COLOR_SELECTED, " F2", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 1);
-    drawString(highlightLoad ? highlightColor : COLOR_UNSELECTED, "LOAD", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 1);
+    drawString(COLOR_SELECTED, " F2", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 1);
+    drawString(highlightLoad ? highlightColor : COLOR_UNSELECTED, "LOAD", COMMANDS1_POSITION_X + 6, COMMANDS1_POSITION_Y + 1);
 
-    drawString(COLOR_SELECTED, " F3", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 2);
-    drawString(highlightSave ? highlightColor : COLOR_UNSELECTED, "SAVE", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 2);
+    drawString(COLOR_SELECTED, " F3", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 2);
+    drawString(highlightSave ? highlightColor : COLOR_UNSELECTED, "SAVE", COMMANDS1_POSITION_X + 6, COMMANDS1_POSITION_Y + 2);
 
-    drawString(COLOR_SELECTED, " ESC", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 3);
-    drawString(COLOR_UNSELECTED, "EXIT", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 3);
+    drawString(COLOR_SELECTED, " ESC", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 3);
+    drawString(COLOR_UNSELECTED, "EXIT", COMMANDS1_POSITION_X + 6, COMMANDS1_POSITION_Y + 3);
    
-    drawString(COLOR_SELECTED, " AL+C", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 4);
-    drawString(highlightCopy ? highlightColor : COLOR_UNSELECTED, "COPY", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 4);
-    drawString(COLOR_SELECTED, " AL+V", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 5);
-    drawString(highlightPaste ? highlightColor : COLOR_UNSELECTED, "PASTE", COMMANDS_POSITION_X + 6, COMMANDS_POSITION_Y + 5);
+    drawString(COLOR_SELECTED, " CT+C", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 0);
+    drawString(highlightCopy ? highlightColor : COLOR_UNSELECTED, "COPY", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 0);
+    drawString(COLOR_SELECTED, " CT+X", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 1);
+    drawString(highlightCut ? highlightColor : COLOR_UNSELECTED, "CUT", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 1);
+    drawString(COLOR_SELECTED, " CT+V", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 2);
+    drawString(highlightPaste ? highlightColor : COLOR_UNSELECTED, "PASTE", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 2);
+    drawString(COLOR_SELECTED, " C", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 3);
+    drawString(highlightClear ? highlightColor : COLOR_UNSELECTED, "CLEAR", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 3);
+    drawString(COLOR_SELECTED, " X", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 4);
+    drawString(highlightMirrorX ? highlightColor : COLOR_UNSELECTED, "MIRRX", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 4);
+    drawString(COLOR_SELECTED, " Y", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 5);
+    drawString(highlightMirrorY ? highlightColor : COLOR_UNSELECTED, "MIRRY", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 5);
 
+}
 
-    sprintf(versionString, VERSION_STRING_PATTERN, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+void setMarqueeTopLeft(int x, int y, int* mX, int* mY, int* mW, int* mH)
+{
+	if(x <= *mX + *mW - 1)
+	{
+		*mX = x;
+		*mW = *mW - (x - *mX);
+		if(*mW <= 0) { printf("NEGATIVE Width"); exit(-1); }
+	}
+	else
+	{
+		*mX = x;
+		*mW = 1;
+	}
+	
+	if(y <= *mY + *mH - 1)
+	{
+		*mY  = y;
+		*mH = *mH - (y - *mY);
+		if(*mH < 0) { printf("NEGATIVE Height"); exit(-1); }
+	}
+	else
+	{
+		*mY = y;
+		*mH = 1;
+	}
+	
+	if(*mX + *mW - 1 > drawAreaWidth - 1)
+	{
+		*mW = drawAreaWidth - *mX;		
+	}
+	
+	if(*mY + *mH - 1 > drawAreaHeight - 1)
+	{
+		*mH = drawAreaHeight - *mY;		
+	}
+}
 
-    drawString(COLOR_UNSELECTED, "  SPRITE  ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 0);
-    drawString(COLOR_UNSELECTED, "  EDITOR  ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 1);
-    drawString(COLOR_UNSELECTED, versionString, ABOUT_POSITION_X, ABOUT_POSITION_Y + 2);
-    drawString(COLOR_UNSELECTED, "    BY    ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 3);
-    drawString(COLOR_UNSELECTED, " JM SOLIS ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 4);
+void setMarqueeBottomRight(int x, int y, int* mX, int* mY, int* mW, int* mH)
+{
+	*mW = x < *mX ? 1 : x - *mX + 1;
+	*mH = y < *mY ? 1 : y - *mY + 1;                        
+
+}
+
+void intersectMarquee(int &x1, int &y1, int &w1, int &h1, int x2, int y2, int w2, int h2)
+{
+	
+}
+
+void drawMarquee(int mX, int mY, int mW, int mH, int mC)
+{
+	int dX = drawAreaPosX;
+	int dY = drawAreaPosY;
+	
+	setScreenCell(dX + mX,          dY + mY, mC, '+');
+	setScreenCell(dX + mX + mW - 1, dY + mY, mC, '+');
+	setScreenCell(dX + mX,          dY + mY + mH - 1, mC, '+');
+	setScreenCell(dX + mX + mW - 1, dY + mY + mH - 1, mC, '+');
+	
+	for(int x = 1; x - 1 < mW - 2; x ++)
+	{
+		setScreenCell(dX + mX + x, dY + mY, mC, '-');
+		setScreenCell(dX + mX + x, dY + mY + mH - 1, mC, '-');
+	}
+	
+	for(int y = 1; y - 1 < mH - 2; y ++)
+	{
+		setScreenCell(dX + mX,          dY + mY + y, mC, '|');
+		setScreenCell(dX + mX + mW - 1, dY + mY + y, mC, '|');
+	}
 
 }
 
@@ -370,8 +458,12 @@ int main(int argc, char* argv[])
     initScreen();
     initUI();
     initMenu();
-    
-    setScreenTitle("Sprite editor");
+	
+	
+	
+	char titleString[TITLE_STRING_SIZE];
+	sprintf(titleString, TITLE_STRING_PATTERN, "Sprite Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
+    setScreenTitle(titleString);
     
     resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
     
@@ -389,6 +481,11 @@ int main(int argc, char* argv[])
     selectedBlueLevel = COLOR_PALETTE2_WIDTH - 1;
     selectedAsciiLevel = '#' - ASCII_FIRST;
     selectedOpacity = 1;
+	
+	selectionPosX = 0;
+	selectionPosY = 0;
+	selectionWidth = drawAreaWidth;
+	selectionHeight = drawAreaHeight;
     
     commandHighlighted = 0;
     commandHighlightedTimer = 0;
@@ -446,24 +543,29 @@ int main(int argc, char* argv[])
         
     while(!quit)
     {
+        int cursorWindowX;
+        int cursorWindowY;
+        getMousePosition(&cursorWindowX, &cursorWindowY);
+        
+        cursorCellX = cursorWindowX / fontWidth;
+        cursorCellY = cursorWindowY / fontHeight;
+		
+		int colorModeEnabled = (selectedMode == MODE_COLOR || selectedMode == MODE_ALL);
+		int characterModeEnabled = (selectedMode == MODE_CHAR || selectedMode == MODE_ALL);
+		int opacityModeEnabled = (selectedMode == MODE_OPACITY || selectedMode == MODE_ALL);
+		
 		if(!isKeyPressed(KEY_ALT))
 		{
-			if(isKeyPressed(KEY_0)) { selectedSlot = 0; }
-			else if(isKeyPressed(KEY_1)) { selectedSlot = 1; }
-			else if(isKeyPressed(KEY_2)) { selectedSlot = 2; }
-			else if(isKeyPressed(KEY_3)) { selectedSlot = 3; }
-			else if(isKeyPressed(KEY_4)) { selectedSlot = 4; }
-			else if(isKeyPressed(KEY_5)) { selectedSlot = 5; }
-			else if(isKeyPressed(KEY_6)) { selectedSlot = 6; }
-			else if(isKeyPressed(KEY_7)) { selectedSlot = 7; }
-			else if(isKeyPressed(KEY_8)) { selectedSlot = 8; }
-			else if(isKeyPressed(KEY_9)) { selectedSlot = 9; }
-			else if(isKeyPressed(KEY_A)) { selectedSlot = 10; }
-			else if(isKeyPressed(KEY_B)) { selectedSlot = 11; }
-			else if(isKeyPressed(KEY_C)) { selectedSlot = 12; }
-			else if(isKeyPressed(KEY_D)) { selectedSlot = 13; }
-			else if(isKeyPressed(KEY_E)) { selectedSlot = 14; }
-			else if(isKeyPressed(KEY_F)) { selectedSlot = 15; }
+			if(isKeyDown(KEY_0)) { selectedSlot = 0; }
+			else if(isKeyDown(KEY_1)) { selectedSlot = 1; }
+			else if(isKeyDown(KEY_2)) { selectedSlot = 2; }
+			else if(isKeyDown(KEY_3)) { selectedSlot = 3; }
+			else if(isKeyDown(KEY_4)) { selectedSlot = 4; }
+			else if(isKeyDown(KEY_5)) { selectedSlot = 5; }
+			else if(isKeyDown(KEY_6)) { selectedSlot = 6; }
+			else if(isKeyDown(KEY_7)) { selectedSlot = 7; }
+			else if(isKeyDown(KEY_8)) { selectedSlot = 8; }
+			else if(isKeyDown(KEY_9)) { selectedSlot = 9; }
 		}
 		
         if(isKeyDown(KEY_ESC))
@@ -517,112 +619,263 @@ int main(int argc, char* argv[])
             commandHighlightedError = !success;
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
         }
-		else if(isKeyPressed(KEY_ALT) && isKeyPressed(KEY_C))
+		else if(isKeyPressed(KEY_CONTROL) && (isKeyDown(KEY_C) || isKeyDown(KEY_X)))
 		{
-			copyBufferPosX = 0;
-			copyBufferPosY = 0;
-			copyBufferWidth = drawAreaWidth;
-			copyBufferHeight = drawAreaHeight;
+			int isCut = isKeyPressed(KEY_X);
 			
-			int copyColors = (selectedMode == MODE_COLOR || selectedMode == MODE_ALL);
-			int copyOpacity = (selectedMode == MODE_OPACITY || selectedMode == MODE_ALL);
-			int copyChars = (selectedMode == MODE_CHAR || selectedMode == MODE_ALL);
+			copyBufferPosX = selectionPosX;
+			copyBufferPosY = selectionPosY;
+			copyBufferWidth = selectionWidth;
+			copyBufferHeight = selectionHeight;
+			
+			copyBufferHasColor = colorModeEnabled;
+			copyBufferHasOpacity = opacityModeEnabled;
+			copyBufferHasCharacters = characterModeEnabled;
 
-			copyBufferHasColor = copyColors;
-			copyBufferHasOpacity = copyOpacity;
-			copyBufferHasCharacters = copyChars;
-
-			for(int y = 0; y < drawAreaHeight; y ++)
+			for(int y = 0; y < copyBufferHeight; y ++)
 			{
-				for(int x = 0; x < drawAreaWidth; x++)
+				for(int x = 0; x < copyBufferWidth; x++)
 				{
-					int col = spriteCells[selectedSlot][y][x].color;
+					int col = spriteCells[selectedSlot][selectionPosY + y][selectionPosX + x].color;					
 					int r = GET_COLOR_R(col);
 					int g = GET_COLOR_G(col);
 					int b = GET_COLOR_B(col);
 					int o = GET_OPACITY(col);
-					char c = spriteCells[selectedSlot][y][x].character;
+					char c = spriteCells[selectedSlot][selectionPosY + y][selectionPosX + x].character;
 					
-					if(copyColors)
-					{
-						copyBuffer[y][x].color &= 0xFF000000;
-						copyBuffer[y][x].color |= MAKE_COLOR(r, g, b);
+					if(colorModeEnabled)
+					{						
+						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].color &= 0xFF000000;
+						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].color |= MAKE_COLOR(r, g, b);
+						
+						if(isCut) { spriteCells[selectedSlot][y + copyBufferPosY][x + copyBufferPosX].color &= 0xFF000000; }
 					}
 					
-					if(copyOpacity)
+					if(opacityModeEnabled)
 					{
-						copyBuffer[y][x].color &= 0x00FFFFFF;
-						copyBuffer[y][x].color |= o << 24;
+						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].color &= 0x00FFFFFF;
+						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].color |= o << 24;
+
+						if(isCut) { spriteCells[selectedSlot][y + selectionPosY][x + selectionPosX].color &= 0x00FFFFFF; }
 					}
 					
-					if(copyChars)
+					if(characterModeEnabled)
 					{
-						copyBuffer[y][x].character = c;
+						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].character = c;
+
+						if(isCut) { spriteCells[selectedSlot][y + selectionPosY][x + selectionPosX].character = ' '; }
 					}
 				}
 			}
 			
-            commandHighlighted = COMMAND_COPY;
+            commandHighlighted = isCut ? COMMAND_CUT : COMMAND_COPY;
             commandHighlightedError = 0;
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
 			
 				
 		}
-		else if(isKeyPressed(KEY_ALT) && isKeyPressed(KEY_V))
+		else if(isKeyPressed(KEY_CONTROL) && isKeyDown(KEY_V))
 		{
-			int copyColors = (selectedMode == MODE_COLOR || selectedMode == MODE_ALL) && copyBufferHasColor;
-			int copyOpacity = (selectedMode == MODE_OPACITY || selectedMode == MODE_ALL) && copyBufferHasOpacity;
-			int copyChars = (selectedMode == MODE_CHAR || selectedMode == MODE_ALL) && copyBufferHasCharacters;
-
-			for(int y = 0; y < drawAreaHeight; y ++)
+			int copyColors = colorModeEnabled && copyBufferHasColor;
+			int copyOpacity = opacityModeEnabled && copyBufferHasOpacity;
+			int copyChars = characterModeEnabled && copyBufferHasCharacters;
+			
+			int success = 0;
+									
+			if((copyBufferHasCharacters || copyBufferHasColor || copyBufferHasCharacters))				
 			{
-				for(int x = 0; x < drawAreaWidth; x++)
+				for(int y = 0; y < copyBufferHeight; y ++)
 				{
-					int col = copyBuffer[y][x].color;
+					for(int x = 0; x < copyBufferWidth; x++)
+					{
+						int col = copyBuffer[copyBufferPosY + y][copyBufferPosX + x].color;
+						int r = GET_COLOR_R(col);
+						int g = GET_COLOR_G(col);
+						int b = GET_COLOR_B(col);
+						int o = GET_OPACITY(col);
+						char c = copyBuffer[copyBufferPosY + y][copyBufferPosX + x].character;
+						
+						int spriteX = cursorCellX - drawAreaPosX + x;
+						int spriteY = cursorCellY - drawAreaPosY + y;
+						
+						if(isInsideRect(spriteX, spriteY, 0, 0, drawAreaWidth, drawAreaHeight))
+						{
+							if(copyColors)
+							{
+								spriteCells[selectedSlot][spriteY][spriteX].color &= 0xFF000000;
+								spriteCells[selectedSlot][spriteY][spriteX].color |= MAKE_COLOR(r, g, b);
+							}
+							
+							if(copyOpacity)
+							{
+								spriteCells[selectedSlot][spriteY][spriteX].color &= 0x00FFFFFF;
+								spriteCells[selectedSlot][spriteY][spriteX].color |= o << 24;
+							}
+							
+							if(copyChars)
+							{
+								spriteCells[selectedSlot][spriteY][spriteX].character = c;
+							}
+							
+							success = 1;
+						}
+					}
+				}
+				
+			}
+			
+			if(success)
+			{
+				selectionPosX = (cursorCellX - drawAreaPosX);
+				selectionPosY = (cursorCellY - drawAreaPosY);
+				selectionWidth = copyBufferWidth;
+				selectionHeight = copyBufferHeight;
+				
+				if(selectionPosX < 0)
+				{
+					selectionWidth += selectionPosX;
+					selectionWidth = max(selectionWidth, 1);
+					selectionPosX = 0;
+				}
+				else if(selectionPosX > drawAreaWidth - 1)
+				{
+					selectionPosX = drawAreaWidth - 1;
+				}
+				
+				if(selectionPosX + selectionWidth - 1 > drawAreaWidth - 1)
+				{
+					selectionWidth = drawAreaWidth - selectionPosX;
+				}
+
+				if(selectionPosY < 0)
+				{
+					selectionHeight += selectionPosY;
+					selectionHeight = max(selectionHeight, 1);
+					selectionPosY = 0;
+				}
+				else if(selectionPosY > drawAreaHeight - 1)
+				{
+					selectionPosY = drawAreaHeight - 1;
+				}
+				
+				if(selectionPosY + selectionHeight - 1 > drawAreaHeight - 1)
+				{ 
+					selectionHeight = drawAreaHeight - selectionPosY;
+				}					
+			}
+
+			
+            commandHighlighted = COMMAND_PASTE;
+            commandHighlightedError = !success;
+            commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
+				
+		}
+		else if(isKeyDown(KEY_X) || isKeyDown(KEY_Y))
+		{
+			int isMirrorX = isKeyPressed(KEY_X);
+			int mirrorWidth = isMirrorX ? selectionWidth / 2 : selectionWidth;
+			int mirrorHeight = isMirrorX ? selectionHeight : selectionHeight / 2;
+	
+			for(int y = 0; y < mirrorHeight; y ++)
+			{
+				for(int x = 0; x < mirrorWidth; x++)
+				{
+					int sourceX = isMirrorX ? selectionPosX + selectionWidth - 1 - x : selectionPosX + x;
+					int sourceY = isMirrorX ? selectionPosY + y : selectionPosY + selectionHeight - 1 - y;
+					
+					int scol = spriteCells[selectedSlot][sourceY][sourceX].color;
+					int sr = GET_COLOR_R(scol);
+					int sg = GET_COLOR_G(scol);
+					int sb = GET_COLOR_B(scol);
+					int so = GET_OPACITY(scol);
+					char sc = spriteCells[selectedSlot][sourceY][sourceX].character;
+					
+					int targetX = selectionPosX + x;
+					int targetY = selectionPosY + y;
+
+					int tcol = spriteCells[selectedSlot][targetY][targetX].color;
+					int tr = GET_COLOR_R(tcol);
+					int tg = GET_COLOR_G(tcol);
+					int tb = GET_COLOR_B(tcol);
+					int to = GET_OPACITY(tcol);
+					char tc = spriteCells[selectedSlot][targetY][targetX].character;
+
+					if(colorModeEnabled)
+					{
+						spriteCells[selectedSlot][sourceY][sourceX].color &= 0xFF000000;
+						spriteCells[selectedSlot][sourceY][sourceX].color |= MAKE_COLOR(tr, tg, tb);
+
+						spriteCells[selectedSlot][targetY][targetX].color &= 0xFF000000;
+						spriteCells[selectedSlot][targetY][targetX].color |= MAKE_COLOR(sr, sg, sb);
+					}
+					
+					if(opacityModeEnabled)
+					{
+						spriteCells[selectedSlot][sourceY][sourceX].color &= 0x00FFFFFF;
+						spriteCells[selectedSlot][sourceY][sourceX].color |= to << 24;
+
+						spriteCells[selectedSlot][targetY][targetX].color &= 0x00FFFFFF;
+						spriteCells[selectedSlot][targetY][targetX].color |= so << 24;
+					}
+					
+					if(characterModeEnabled)
+					{
+						spriteCells[selectedSlot][sourceY][sourceX].character = tc;
+						
+						spriteCells[selectedSlot][targetY][targetX].character = sc;
+					}
+				}
+			}					
+
+            commandHighlighted = isMirrorX ? COMMAND_MIRROR_X : COMMAND_MIRROR_Y;
+            commandHighlightedError = 0;
+            commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
+		}
+		else if(!isKeyPressed(KEY_CONTROL) && isKeyDown(KEY_C))
+		{
+			for(int y = 0; y < selectionHeight; y ++)
+			{
+				for(int x = 0; x < selectionWidth; x++)
+				{
+					int cellX = selectionPosX + x;
+					int cellY = selectionPosY + y;
+					
+					int col = spriteCells[selectedSlot][cellY][cellX].color;					
 					int r = GET_COLOR_R(col);
 					int g = GET_COLOR_G(col);
 					int b = GET_COLOR_B(col);
 					int o = GET_OPACITY(col);
-					char c = copyBuffer[y][x].character;
+					char c = spriteCells[selectedSlot][cellY][cellX].character;
 					
-					if(copyColors)
-					{
-						spriteCells[selectedSlot][y][x].color &= 0xFF000000;
-						spriteCells[selectedSlot][y][x].color |= MAKE_COLOR(r, g, b);
+					if(colorModeEnabled)
+					{						
+						spriteCells[selectedSlot][cellY][cellX].color &= 0xFF000000;
+						spriteCells[selectedSlot][cellY][cellX].color |= MAKE_COLOR(0, 0, 0);
 					}
 					
-					if(copyOpacity)
+					if(opacityModeEnabled)
 					{
-						spriteCells[selectedSlot][y][x].color &= 0x00FFFFFF;
-						spriteCells[selectedSlot][y][x].color |= o << 24;
+						spriteCells[selectedSlot][cellY][cellX].color &= 0x00FFFFFF;
+						spriteCells[selectedSlot][cellY][cellX].color |= 0 << 24;
 					}
 					
-					if(copyChars)
+					if(characterModeEnabled)
 					{
-						spriteCells[selectedSlot][y][x].character = c;
+						spriteCells[selectedSlot][cellY][cellX].character = ' ';
 					}
 				}
-			}
+			}				
 
-            commandHighlighted = COMMAND_PASTE;
+            commandHighlighted = COMMAND_CLEAR;
             commandHighlightedError = 0;
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
-				
 		}
         
         int mouseLeftPressed = isKeyPressed(MOUSE_LEFT) ? 1 : 0;
         int mouseRightPressed = isKeyPressed(MOUSE_RIGHT) ? 1 : 0;
-        
-        int cursorWindowX;
-        int cursorWindowY;
-        getMousePosition(&cursorWindowX, &cursorWindowY);
-        
-        cursorCellX = cursorWindowX / fontWidth;
-        cursorCellY = cursorWindowY / fontHeight;
-        
+                
         if(mouseLeftPressed) { cursorChar = 'X'; }
-        else { cursorChar = 'O'; }
-        
+        else { cursorChar = 'O'; }        
 
         if(isInsideRect(cursorCellX, cursorCellY,
             ASCII_PALETTE_POSITION_X, ASCII_PALETTE_POSITION_Y,
@@ -667,7 +920,18 @@ int main(int argc, char* argv[])
                 int canChangeOpacity = (selectedMode == MODE_ALL || selectedMode == MODE_OPACITY);
                 int isOpacityMode = (selectedMode == MODE_OPACITY);
 
-
+				if(selectedTool == TOOL_SELECT)
+				{                        
+                    if(mouseLeftPressed)
+                    {
+						setMarqueeTopLeft(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+                    }
+                    else
+                    {
+						setMarqueeBottomRight(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+                    }
+										
+				}
                 if(selectedTool == TOOL_DRAW)
                 {
                     if(mouseLeftPressed)
@@ -676,32 +940,39 @@ int main(int argc, char* argv[])
                         int g = (int)(selectedGreenLevel * (255.0f / COLOR_PALETTE1_HEIGHT));
                         int b = (int)(selectedBlueLevel * (255.0f / COLOR_PALETTE2_WIDTH));
                         
-                        char c = ASCII_FIRST + selectedAsciiLevel;                
+                        char c = ASCII_FIRST + selectedAsciiLevel;
+
+						if(isInsideRect(x, y, selectionPosX, selectionPosY, selectionWidth, selectionHeight))
+						{
+							if(canChangeColor)
+							{
+								int color = spriteCells[s][y][x].color;
+								
+								int opacity = color >> 24;
+								
+								spriteCells[s][y][x].color = MAKE_COLOR(r, g, b) | (opacity << 24);
+							}
+							if(canChangeCharacter) { spriteCells[s][y][x].character = c; }
+							if(canChangeOpacity)
+							{
+								int color = spriteCells[s][y][x].color;
+								
+								if(selectedOpacity) { color |= (1 << 24); }
+								else { color &= ~(1 << 24); }
+								
+								spriteCells[s][y][x].color = color;
+							}
+						}
                         
-                        if(canChangeColor)
-                        {
-                            int color = spriteCells[s][y][x].color;
-                            
-                            int opacity = color >> 24;
-                            
-                            spriteCells[s][y][x].color = MAKE_COLOR(r, g, b) | (opacity << 24);
-                        }
-                        if(canChangeCharacter) { spriteCells[s][y][x].character = c; }
-                        if(canChangeOpacity)
-                        {
-                            int color = spriteCells[s][y][x].color;
-                            
-                            if(selectedOpacity) { color |= (1 << 24); }
-                            else { color &= ~(1 << 24); }
-                            
-                            spriteCells[s][y][x].color = color;
-                        }
                     }
                     else
                     {
-                        if(canChangeColor) { spriteCells[s][y][x].color = MAKE_COLOR(0, 0, 0); }
-                        if(canChangeCharacter) { spriteCells[s][y][x].character = ' '; }                        
-                        if(canChangeOpacity) { spriteCells[s][y][x].color &= ~(1 << 24); }                        
+						if(isInsideRect(x, y, selectionPosX, selectionPosY, selectionWidth, selectionHeight))
+						{
+							if(canChangeColor) { spriteCells[s][y][x].color = MAKE_COLOR(0, 0, 0); }
+							if(canChangeCharacter) { spriteCells[s][y][x].character = ' '; }                        
+							if(canChangeOpacity) { spriteCells[s][y][x].color &= ~(1 << 24); }
+						}                        
                     }
                 }
                 else if(selectedTool == TOOL_PICK)
@@ -737,39 +1008,18 @@ int main(int argc, char* argv[])
                         
                     if(mouseLeftPressed)
                     {
-                        if(x <= bX + bW - 1)
-                        {
-                            spriteBounds[selectedSlot * 4 + 0] = x;
-                            spriteBounds[selectedSlot * 4 + 2] = bW - (x - bX);
-                            if(spriteBounds[selectedSlot * 4 + 2] <= 0) { printf("NEGATIVE Width"); exit(-1); }
-                        }
-                        else
-                        {
-                            spriteBounds[selectedSlot * 4 + 0]  = bX;                            
-                            spriteBounds[selectedSlot * 4 + 2] = 1;
-                        }
-                        
-                        if(y <= bY + bH - 1)
-                        {
-                            spriteBounds[selectedSlot * 4 + 1]  = y;
-                            spriteBounds[selectedSlot * 4 + 3] = bH - (y - bY);
-                            if(spriteBounds[selectedSlot * 4 + 3] <= 0) { printf("NEGATIVE Height"); exit(-1); }
-                        }
-                        else
-                        {
-                            spriteBounds[selectedSlot * 4 + 1]  = bY;                            
-                            spriteBounds[selectedSlot * 4 + 3] = 1;
-                        }
-                        
-                        // if(x + bW >= drawAreaWidth) { bW = drawAreaWidth - x; }
-                        // if(y + bH >= drawAreaHeight) { bH = drawAreaHeight - y; }
-                        
+						setMarqueeTopLeft(x, y, &bX, &bY, &bW, &bH);                        
                     }
                     else
                     {
-                        spriteBounds[selectedSlot * 4 + 2] = x < bX ? 1 : x - bX + 1;
-                        spriteBounds[selectedSlot * 4 + 3] = y < bY ? 1 : y - bY + 1;                        
+						setMarqueeBottomRight(x, y, &bX, &bY, &bW, &bH);
                     }
+					
+                    spriteBounds[selectedSlot * 4 + 0] = bX;
+                    spriteBounds[selectedSlot * 4 + 1] = bY; 
+                    spriteBounds[selectedSlot * 4 + 2] = bW;
+                    spriteBounds[selectedSlot * 4 + 3] = bH;
+					
                     
                 }
 
@@ -838,40 +1088,29 @@ int main(int argc, char* argv[])
                 }
             }
         }
+		
+		int isFullSelection = (selectionPosX == 0 && selectionPosY == 0 && selectionWidth == drawAreaWidth && selectionHeight == drawAreaHeight);
         
-        if(selectedTool == TOOL_BOUNDS)
+		if(selectedTool == TOOL_SELECT || (!isFullSelection && selectedTool == TOOL_DRAW))
+		{
+			drawMarquee(selectionPosX, selectionPosY, selectionWidth, selectionHeight, COLOR_SELECTED);			
+		}
+        else if(selectedTool == TOOL_BOUNDS)
         {
-            int dX = drawAreaPosX;
-            int dY = drawAreaPosY;
             int bX = spriteBounds[selectedSlot * 4 + 0];
             int bY = spriteBounds[selectedSlot * 4 + 1];
             int bW = spriteBounds[selectedSlot * 4 + 2];
             int bH = spriteBounds[selectedSlot * 4 + 3];
-            
-            setScreenCell(dX + bX,          dY + bY, COLOR_SELECTED, '+');
-            setScreenCell(dX + bX + bW - 1, dY + bY, COLOR_SELECTED, '+');
-            setScreenCell(dX + bX,          dY + bY + bH - 1, COLOR_SELECTED, '+');
-            setScreenCell(dX + bX + bW - 1, dY + bY + bH - 1, COLOR_SELECTED, '+');
-            
-            for(int x = 1; x - 1 < bW - 2; x ++)
-            {
-                setScreenCell(dX + bX + x, dY + bY, COLOR_SELECTED, '-');
-                setScreenCell(dX + bX + x, dY + bY + bH - 1, COLOR_SELECTED, '-');
-            }
-            
-            for(int y = 1; y - 1 < bH - 2; y ++)
-            {
-                setScreenCell(dX + bX,          dY + bY + y, COLOR_SELECTED, '|');
-                setScreenCell(dX + bX + bW - 1, dY + bY + y, COLOR_SELECTED, '|');
-            }
+			
+			drawMarquee(bX, bY, bW, bH, COLOR_BOUNDS);
+			
         }
 
         if(selectedTool == TOOL_PIVOT || selectedTool == TOOL_BOUNDS)
         {
             setScreenCell(drawAreaPosX + spritePivots[selectedSlot * 2 + 0],
-                          drawAreaPosY + spritePivots[selectedSlot * 2 + 1], COLOR_SELECTED, '+');
-        }
-        
+                          drawAreaPosY + spritePivots[selectedSlot * 2 + 1], COLOR_BOUNDS, '+');
+        }        
         
         setScreenCell(cursorCellX, cursorCellY, cursorColor, cursorChar);
         

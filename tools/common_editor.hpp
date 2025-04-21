@@ -10,8 +10,8 @@
 #include <sprites.hpp>
 #include <system.hpp>
 
-#define VERSION_STRING_SIZE 20
-#define VERSION_STRING_PATTERN "  v%d.%d.%d"
+#define TITLE_STRING_SIZE 80
+#define TITLE_STRING_PATTERN "%s v%d.%d.%d by %s"
 
 #define COLOR_SELECTED MAKE_COLOR(255,255,255)
 #define COLOR_UNSELECTED MAKE_COLOR(127,127,127)

@@ -73,17 +73,12 @@
 
 #define COMMAND_HIGHLIGHT_TIME (0.5f)
 
-#define COMMANDS_COUNT 4
+#define COMMANDS1_COUNT 4
 
-#define COMMANDS_WIDTH 10
-#define COMMANDS_HEIGHT COMMANDS_COUNT
-#define COMMANDS_POSITION_X 3
-#define COMMANDS_POSITION_Y (TOOLS_POSITION_Y + TOOLS_HEIGHT + 5)
-
-#define ABOUT_WIDTH 10
-#define ABOUT_HEIGHT 5
-#define ABOUT_POSITION_X 3
-#define ABOUT_POSITION_Y (CELLS_HEIGHT - ABOUT_HEIGHT - 1)
+#define COMMANDS1_WIDTH 10
+#define COMMANDS1_HEIGHT COMMANDS1_COUNT
+#define COMMANDS1_POSITION_X 3
+#define COMMANDS1_POSITION_Y (TOOLS_POSITION_Y + TOOLS_HEIGHT + 5)
 
 #define SLOTS_COUNT 16
 #define SLOTS_WIDTH (SLOTS_COUNT * 2)
@@ -254,10 +249,6 @@ int itemParamColors[ITEM_PARAM_VALUES_COUNT]
     
 };
 
-
-
-char versionString[VERSION_STRING_SIZE];
-
 char cursorChar;
 int cursorColor;
 int cursorCellX;
@@ -309,10 +300,8 @@ void drawUI()
     
     drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
 
-    drawWindow(COMMANDS_POSITION_X - 1, COMMANDS_POSITION_Y - 3, COMMANDS_WIDTH + 2, COMMANDS_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
-    
-    drawWindow(ABOUT_POSITION_X - 1, ABOUT_POSITION_Y - 1, ABOUT_WIDTH + 2, ABOUT_HEIGHT + 2, NULL, COLOR_UNSELECTED);     
-    
+    drawWindow(COMMANDS1_POSITION_X - 1, COMMANDS1_POSITION_Y - 3, COMMANDS1_WIDTH + 2, COMMANDS1_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
+        
     char itemType = 0;
     
     while(itemType < ITEM_TYPE_COUNT)
@@ -393,26 +382,18 @@ void drawUI()
     int highlightSave = highlight && (commandHighlighted == COMMAND_SAVE);
     int highlightColor = commandHighlightedError ? COLOR_ERROR : COLOR_SELECTED; 
     
-    drawString(COLOR_SELECTED, " F1", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 0);
-    drawString(highlightNew ? highlightColor : COLOR_UNSELECTED, "NEW", COMMANDS_POSITION_X + 5, COMMANDS_POSITION_Y + 0);
+    drawString(COLOR_SELECTED, " F1", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 0);
+    drawString(highlightNew ? highlightColor : COLOR_UNSELECTED, "NEW", COMMANDS1_POSITION_X + 5, COMMANDS1_POSITION_Y + 0);
 
-    drawString(COLOR_SELECTED, " F2", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 1);
-    drawString(highlightLoad ? highlightColor : COLOR_UNSELECTED, "LOAD", COMMANDS_POSITION_X + 5, COMMANDS_POSITION_Y + 1);
+    drawString(COLOR_SELECTED, " F2", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 1);
+    drawString(highlightLoad ? highlightColor : COLOR_UNSELECTED, "LOAD", COMMANDS1_POSITION_X + 5, COMMANDS1_POSITION_Y + 1);
 
-    drawString(COLOR_SELECTED, " F3", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 2);
-    drawString(highlightSave ? highlightColor : COLOR_UNSELECTED, "SAVE", COMMANDS_POSITION_X + 5, COMMANDS_POSITION_Y + 2);
+    drawString(COLOR_SELECTED, " F3", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 2);
+    drawString(highlightSave ? highlightColor : COLOR_UNSELECTED, "SAVE", COMMANDS1_POSITION_X + 5, COMMANDS1_POSITION_Y + 2);
 
-    drawString(COLOR_SELECTED, " ESC", COMMANDS_POSITION_X, COMMANDS_POSITION_Y + 3);
-    drawString(COLOR_UNSELECTED, "EXIT", COMMANDS_POSITION_X + 5, COMMANDS_POSITION_Y + 3);
+    drawString(COLOR_SELECTED, " ESC", COMMANDS1_POSITION_X, COMMANDS1_POSITION_Y + 3);
+    drawString(COLOR_UNSELECTED, "EXIT", COMMANDS1_POSITION_X + 5, COMMANDS1_POSITION_Y + 3);
     
-    sprintf(versionString, VERSION_STRING_PATTERN, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-    
-    drawString(COLOR_UNSELECTED, "   MAP  ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 0);
-    drawString(COLOR_UNSELECTED, "  EDITOR  ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 1);
-    drawString(COLOR_UNSELECTED, versionString, ABOUT_POSITION_X, ABOUT_POSITION_Y + 2);
-    drawString(COLOR_UNSELECTED, "    BY    ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 3);
-    drawString(COLOR_UNSELECTED, " JM SOLIS ", ABOUT_POSITION_X, ABOUT_POSITION_Y + 4);
-
 }
 
 int tryLoadMap(int slot)
@@ -552,7 +533,9 @@ int main(int argc, char* argv[])
     initUI();
     initMenu();
     
-    setScreenTitle("Map editor");
+	char titleString[TITLE_STRING_SIZE];
+	sprintf(titleString, TITLE_STRING_PATTERN, "Map Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
+    setScreenTitle(titleString);
     
     resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
     

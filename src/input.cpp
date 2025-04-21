@@ -51,7 +51,7 @@ void initInput()
     result = GetConsoleMode(input_consoleHandleInput, &consoleMode); 
     ASSERT(result, "Failed to get console mode")   
     
-    consoleMode = ENABLE_EXTENDED_FLAGS | (consoleMode & ~ENABLE_QUICK_EDIT_MODE);
+    consoleMode = ENABLE_EXTENDED_FLAGS | (consoleMode & ~(ENABLE_QUICK_EDIT_MODE | ENABLE_PROCESSED_INPUT));
     result = SetConsoleMode(input_consoleHandleInput, consoleMode);  
     ASSERT(result, "Failed to set console mode")
     
