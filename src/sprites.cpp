@@ -51,6 +51,18 @@ void initSprites()
 	
 }
 
+SpriteCell getSpriteCell(int index, int posX, int posY, SpriteCell boundary)
+{
+    if(posX < 0 || posX > SPRITE_SIZE - 1 || posY < 0 || posY > SPRITE_SIZE - 1)
+    {
+        return boundary;
+    }
+    else
+    {
+        return sprites[index].cells[posY][posX];
+    }
+}
+
 void drawSprite(int index, int posX, int posY)
 {
 	int pX = sprites[index].pivotX;
@@ -70,5 +82,53 @@ void drawSprite(int index, int posX, int posY)
 			if(o != 0) { setScreenCell(posX - (pX - bX) + x, posY - (pY - bY) + y, c.color, c.character); }
 		}
 	}
+}
+
+void drawScaledSprite(int index, int posX, int posY, float scale)
+{
+    int pX = sprites[index].pivotX;
+    int pY = sprites[index].pivotY;
+	int bX = sprites[index].boundaryX;
+	int bY = sprites[index].boundaryY;
+	int bW = sprites[index].boundaryWidth;
+	int bH = sprites[index].boundaryHeight;
+    
+    float pXToBX = bX - pX;
+    float pYToBY = bY - pY;
+    
+    float scaledBX = pX + pXToBX * scale;
+    float scaledBY = pY + pYToBY * scale;
+    float scaledBW = bW * scale;
+    float scaledBH = bH * scale;
+    
+    SpriteCell boundaryCell;
+    boundaryCell.color = 0;
+    boundaryCell.character = ' ';
+    
+    int usedCells[SPRITE_SIZE][SPRITE_SIZE];
+    for(int y = 0; y < SPRITE_SIZE; y ++)
+    {   for(int x = 0; x < SPRITE_SIZE; x ++) { usedCells[y][x] = 0; }
+    }
+    
+    for(int y = 0; y < scaledBH; y++)
+    {
+        for(int x = 0; x < scaledBW; x++)
+        {
+            int spriteX = pX + (scaledBX + x - pX) / scale;
+            int spriteY = pY + (scaledBY + y - pY) / scale;
+            
+            SpriteCell c = getSpriteCell(index, spriteX, spriteY, boundaryCell);
+            int o = GET_OPACITY(c.color);
+            
+            if(o != 0)
+            {                
+                setScreenCell(posX + pXToBX * scale + x, posY + pYToBY * scale + y, c.color, c.character);
+            }
+            
+        }
+    }
+    
+    
+    
 }
 

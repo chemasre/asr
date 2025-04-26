@@ -36,6 +36,7 @@ struct SortedSprite
     float posX;
     float posY;
     int sprite;
+    float height;
 };
 
 SortedSprite sortedSprites[MAX_SORTED_SPRITES];
@@ -84,11 +85,12 @@ void initSortedSprites()
     sortedSpritesCount = 0;
 }
 
-void addSortedSprite(int sprite, float x, float y)
+void addSortedSprite(int sprite, float x, float y, float height)
 {
     sortedSprites[sortedSpritesCount].posX = x;
     sortedSprites[sortedSpritesCount].posY = y;
-    sortedSprites[sortedSpritesCount].sprite = sprite;    
+    sortedSprites[sortedSpritesCount].height = height;
+    sortedSprites[sortedSpritesCount].sprite = sprite;
     
     sortedSpritesCount ++;
 }
@@ -112,8 +114,8 @@ void drawSortedSprites()
     
     for(int i = 0; i < sortedSpritesCount; i++)
     {
-        float aX = playerPosX - sortedSprites[i].posX;
-        float aY = playerPosY - sortedSprites[i].posY;
+        float aX = cameraPosX - sortedSprites[i].posX;
+        float aY = cameraPosY - sortedSprites[i].posY;
         sortedSpritesDistances[i] = sqrt(aX * aX + aY * aY);
         
         // printf("Sprite %d distance %f\n", sortedSprites[i].sprite, sortedSpritesDistances[i]);
@@ -144,8 +146,8 @@ void drawSortedSprites()
         float spritePosX = sortedSprites[i].posX;
         float spritePosY = sortedSprites[i].posY;
         
-        float playerToSpriteX  = spritePosX - playerPosX;
-        float playerToSpriteY  = spritePosY - playerPosY;
+        float playerToSpriteX  = spritePosX - cameraPosX;
+        float playerToSpriteY  = spritePosY - cameraPosY;
         
         float spriteAngle = atan2(playerToSpriteY, playerToSpriteX) * RAD2DEG;
         
@@ -153,7 +155,8 @@ void drawSortedSprites()
         
         float spritePlayerX = cos(playerToSpriteAngle * DEG2RAD) * sortedSpritesDistances[i];
         float spritePlayerY = sin(playerToSpriteAngle * DEG2RAD) * sortedSpritesDistances[i];
-        float spritePlayerZ = -VIEW_WORLD_Z;
+        float spriteLowPlayerZ = -VIEW_WORLD_Z;
+        float spriteHighPlayerZ = -VIEW_WORLD_Z + sortedSprites[i].height;
 
         float viewHeight = getViewHeight();
         float viewWidth = viewHeight * getViewAspect();
@@ -163,13 +166,21 @@ void drawSortedSprites()
         
         int spriteScreenX = screenWidth / 2 + spriteViewX * screenWidth / viewWidth;
         
-        float spriteVerticalAngle = atan2(spritePlayerZ, sortedSpritesDistances[i]) * RAD2DEG;
+        float spriteVerticalLowAngle = atan2(spriteLowPlayerZ, sortedSpritesDistances[i]) * RAD2DEG;
+        float spriteVerticalHighAngle = atan2(spriteHighPlayerZ, sortedSpritesDistances[i]) * RAD2DEG;
         
-        h = VIEW_NEAR_DISTANCE / cos(spriteVerticalAngle * DEG2RAD);
-        float spriteViewZ = -h * sin(spriteVerticalAngle * DEG2RAD);
+        h = VIEW_NEAR_DISTANCE / cos(spriteVerticalLowAngle * DEG2RAD);
+        float spriteViewLowZ = -h * sin(spriteVerticalLowAngle * DEG2RAD);
+
+        int spriteScreenLowY = screenHeight / 2 + spriteViewLowZ * screenHeight / viewHeight;
         
-        int spriteScreenY = screenHeight / 2 + spriteViewZ * screenHeight / viewHeight;
+        h = VIEW_NEAR_DISTANCE / cos(spriteVerticalHighAngle * DEG2RAD);
+        float spriteViewHighZ = -h * sin(spriteVerticalHighAngle * DEG2RAD);
+
+        int spriteScreenHighY = screenHeight / 2 + spriteViewHighZ * screenHeight / viewHeight;
         
+        
+
         if(spritePlayerY > 0)
         {
             // Search for a visible sprite position
@@ -199,9 +210,12 @@ void drawSortedSprites()
                 {
                     // Clip the sprite using the visible rect found
                     
+                    float spriteScale = fabs(spriteScreenLowY - spriteScreenHighY) / SPRITE_SIZE;
+                    
                     enableClipArea();
                     setClipArea(clipLeft, 0, clipRight - clipLeft, screenHeight);            
-                    drawSprite(sortedSprites[i].sprite, spriteScreenX, spriteScreenY);               
+                    //drawSprite(sortedSprites[i].sprite, spriteScreenX, spriteScreenY);
+                    drawScaledSprite(sortedSprites[i].sprite, spriteScreenX, spriteScreenLowY, spriteScale);
                     disableClipArea();
                 }
             }
@@ -366,12 +380,9 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
             boundaryDefault.g = 0.3f;
             boundaryDefault.b = 0.3f;
 
-            // if(viewWorldZ > 0)
-            // {
             v = 1.0f - W2C(viewWorldZ);
             
             sample = getTextureSample(texture, u, v, boundaryDefault);
-            // }
             
             float sampleLight = (sample.r + sample.g + sample.b) / 3.0f;
                 
@@ -477,7 +488,7 @@ void drawView()
         float viewDeviationX = screenDeviationX * viewScale;
         float viewDeviationAngle = atan2(viewDeviationX, VIEW_NEAR_DISTANCE) * RAD2DEG;
 
-        int hit = rayCast(0, playerPosX, playerPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);
+        int hit = rayCast(0, cameraPosX, cameraPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);
 
 
 

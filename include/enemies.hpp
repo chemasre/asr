@@ -3,6 +3,8 @@
 
 #include <common_header.hpp>
 
+#define ENEMIES_HEIGHT 1.5f
+
 void initEnemies();
 void updateEnemies();
 void drawEnemies();

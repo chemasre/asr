@@ -322,6 +322,7 @@ void main()
         else // gameState == GAMESTATE_PLAYING
         {
 			drawEnemies();
+            drawPlayer();
             drawView();
             drawHud();
         }

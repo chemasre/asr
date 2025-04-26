@@ -19,7 +19,7 @@
 
 #define VIEW_NEAR_DISTANCE 0.01f
 
-#define VIEW_WORLD_Z 1.0f
+#define VIEW_WORLD_Z 0.6f
 
 extern float fov;
 extern float viewDistance;
@@ -31,7 +31,7 @@ void initView();
 void updateView();
 void drawView();
 
-void addSortedSprite(int sprite, float x, float y);
+void addSortedSprite(int sprite, float x, float y, float height);
 
 // private
 

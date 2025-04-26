@@ -3,10 +3,13 @@
 
 #include <common_header.hpp>
 
-#define MINIMAP_WIDTH 30
-#define MINIMAP_HEIGHT 20
+#define MINIMAP_WIDTH 20
+#define MINIMAP_HEIGHT 14
 
 #define MINIMAP_MAX_SCALE 3
+
+#define HEALTH_HEIGHT 5
+#define HEALTH_WIDTH 13
 
 #define HUD_COLOR MAKE_COLOR(185,122,87)
 #define HUD_TEXT_COLOR MAKE_COLOR(172,140,32)

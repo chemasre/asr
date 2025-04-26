@@ -10,6 +10,9 @@
 
 char minimapDirections[MINIMAP_DIRECTIONS_COUNT] = { '^', '/', '>', '\\', 'V', '/', '<', '\\' };
 int minimapScale;
+int minimapEnabled;
+
+int debugInfoEnabled;
 
 #define HEALTH_LEVELS_COUNT 3
 
@@ -17,8 +20,6 @@ float healthLevelsLimits[HEALTH_LEVELS_COUNT] = { 0.5f, 0.9f, 1.0f };
 int healthLevelsSprites[HEALTH_LEVELS_COUNT] = { 4, 5, 6 };
 int healthLevelsColors[HEALTH_LEVELS_COUNT] = { MAKE_COLOR(0, 255, 0), MAKE_COLOR(255, 255, 0), MAKE_COLOR(255, 0, 0) };
 
-int healthWidth;
-int healthHeight;
 
 int healthSpritePositionX;
 int healthSpritePositionY;
@@ -34,32 +35,37 @@ char textBuffer[1024];
 
 char messageBuffer[1024];
 
-int animFrame;
-float animTimer;
-
 void initMinimap()
 {
-    minimapScale = 2;
+    minimapScale = 1;
+    minimapEnabled = 0;
 }
 
 void updateMinimap()
 {
-    int cycleMinimap = isKeyPressed(KEY_M);
+    int cycleMinimap = isKeyDown(KEY_M);
     
     if(cycleMinimap)
     {
-        minimapScale ++;
-        
-        if(minimapScale > MINIMAP_MAX_SCALE) { minimapScale = 1; }
+        if(!minimapEnabled)
+        {
+            minimapEnabled = 1;
+            minimapScale = 1;
+        }
+        else
+        {
+            minimapScale ++;        
+            if(minimapScale > MINIMAP_MAX_SCALE) { minimapEnabled = 0; }
+        }
     }     
 }
 
 void drawMinimapCube(int x, int y, int w, int h)
 {
-    setScreenCell(x, y, MINIMAP_COLOR, '/');
-    setScreenCell(x + w - 1, y, MINIMAP_COLOR, '\\');
-    setScreenCell(x, y + h - 1, MINIMAP_COLOR, '\\');
-    setScreenCell(x + w - 1, y + h - 1, MINIMAP_COLOR, '/');
+    setScreenCell(x, y, MINIMAP_COLOR, 'o');
+    setScreenCell(x + w - 1, y, MINIMAP_COLOR, 'o');
+    setScreenCell(x, y + h - 1, MINIMAP_COLOR, 'o');
+    setScreenCell(x + w - 1, y + h - 1, MINIMAP_COLOR, 'o');
     
      for(int i = 0; i < w - 2; i++)
     {
@@ -85,13 +91,15 @@ void drawMinimap()
     int playerMinimapPosX = (int)(W2C(playerPosX) * minimapScale);
     int playerMinimapPosY = (int)(W2C(playerPosY) * minimapScale);
     
-    int windowX = screenWidth - 2 - MINIMAP_WIDTH;
-    int windowY = screenHeight - 2 - MINIMAP_HEIGHT;
+    int windowX = 1;
+    int windowY = screenHeight - (HEALTH_HEIGHT + 2) - (MINIMAP_HEIGHT + 2);
+    int windowWidth = MINIMAP_WIDTH + 2;
+    int windowHeight = MINIMAP_HEIGHT + 2;
     
-    drawWindow(windowX, windowY, MINIMAP_WIDTH + 2, MINIMAP_HEIGHT + 2, NULL, HUD_COLOR);    
+    drawWindow(windowX, windowY, windowWidth, windowHeight, NULL, HUD_COLOR);    
     
     int minimapX = windowX + 1;
-    int minimapY = windowY + 1;    
+    int minimapY = windowY + 1;
 
     enableClipArea();
     
@@ -128,7 +136,27 @@ void drawMinimap()
     }   
 
     disableClipArea();
+    
+    drawString(HUD_COLOR, "{N}", windowX + windowWidth / 2 - 1, windowY);
+    drawString(HUD_COLOR, "{S}", windowX + windowWidth / 2 - 1, windowY + windowHeight - 1);
+    drawString(HUD_COLOR, "{W}", windowX - 1, windowY + windowHeight / 2);
+    drawString(HUD_COLOR, "{E}", windowX + windowWidth - 1 - 1, windowY + windowHeight / 2);
+    
 
+}
+
+void initDebugInfo()
+{
+    debugInfoEnabled = 0;
+}
+
+void updateDebugInfo()
+{
+    if(isKeyDown(KEY_F1))
+    {
+        debugInfoEnabled = !debugInfoEnabled;
+    }
+    
 }
 
 void drawFloat(int x, int y, char name[], float value)
@@ -138,7 +166,7 @@ void drawFloat(int x, int y, char name[], float value)
 }
 
 
-void drawStats()
+void drawDebugInfo()
 {
     drawWindow(screenWidth - 21, 1, 21, 7, NULL, HUD_COLOR);
 
@@ -157,38 +185,21 @@ void drawStats()
 
 void updateHealth()
 {
-    healthWidth = 13;
-    healthHeight = 5;
-    
-    healthSpritePositionX = screenWidth / 2 - healthWidth / 2;
-    healthSpritePositionY = screenHeight - healthHeight - 1;
+    healthSpritePositionX = screenWidth / 2 - HEALTH_WIDTH / 2;
+    healthSpritePositionY = 1; //screenHeight - HEALTH_HEIGHT - 1;
     
     healthBarWidth = 1;
-    healthBarPositionX = healthSpritePositionX + healthWidth - healthBarWidth;
+    healthBarPositionX = healthSpritePositionX + HEALTH_WIDTH - healthBarWidth;
     
 }
 
-void initPlayerAvatar()
-{
-    animFrame = 0;
-    animTimer = 0;
-}
 
-void updatePlayerAvatar()
-{
-    if(playerIsMoving)
-    {
-		animTimer += 1.0f / SCREEN_FPS;
-		
-		if(animTimer > 1.0f / PLAYER_ANIM_FPS) { animFrame = (animFrame + 1) % 2; animTimer -= 1.0f / PLAYER_ANIM_FPS; }    
-    }
-}
 
 void drawHealth()
 {
-    drawWindow(healthSpritePositionX - 1, healthSpritePositionY - 1, healthWidth + 2, healthHeight + 2, NULL, HUD_COLOR);
+    drawWindow(healthSpritePositionX - 1, healthSpritePositionY - 1, HEALTH_WIDTH + 2, HEALTH_HEIGHT + 2, NULL, HUD_COLOR);
 
-    drawWindow(healthBarPositionX - 1, healthSpritePositionY - 1, healthBarWidth + 2, healthHeight + 2, NULL, HUD_COLOR);
+    drawWindow(healthBarPositionX - 1, healthSpritePositionY - 1, healthBarWidth + 2, HEALTH_HEIGHT + 2, NULL, HUD_COLOR);
     
     int healthLevel = -1;
     float normalizedHealth = (1.0f - playerHealth / PLAYER_MAX_HEALTH);
@@ -206,15 +217,15 @@ void drawHealth()
     
     drawSprite(healthSprite, healthSpritePositionX, healthSpritePositionY);
     
-    int healthBarHeight = normalizedHealth * healthHeight;
+    int healthBarHeight = normalizedHealth * HEALTH_HEIGHT;
     
-    fillScreenArea(healthBarPositionX, healthSpritePositionY + healthHeight - healthBarHeight, 1, healthBarHeight, healthBarColor, '#');
+    fillScreenArea(healthBarPositionX, healthSpritePositionY + HEALTH_HEIGHT - healthBarHeight, 1, healthBarHeight, healthBarColor, '#');
     
 }
 
 void drawPlayerAvatar()
 {
-    drawSprite(animFrame, screenWidth / 2, screenHeight - 1);    
+    //drawSprite(animFrame, screenWidth / 2, screenHeight - 1);    
 }
 
 void drawMessage()
@@ -222,7 +233,7 @@ void drawMessage()
     int messagePositionX = healthBarPositionX + healthBarWidth + 2;
     int messagePositionY = healthSpritePositionY + 1;
     int messageWidth = screenWidth - messagePositionX - 2;
-    int messageHeight = healthHeight - 2;
+    int messageHeight = HEALTH_HEIGHT - 2;
     
     drawWindow(messagePositionX - 2, messagePositionY - 2, messageWidth + 4, messageHeight + 4, NULL, HUD_COLOR);
     
@@ -234,7 +245,7 @@ void drawInventory()
     int inventoryPositionX = 1;
     int inventoryPositionY = healthSpritePositionY;
     int inventoryWidth = healthSpritePositionX - inventoryPositionX - 1;
-    int inventoryHeight = healthHeight;
+    int inventoryHeight = HEALTH_HEIGHT;
 
     drawWindow(inventoryPositionX - 1, inventoryPositionY - 1, inventoryWidth + 2, inventoryHeight + 2, NULL, HUD_COLOR);
     
@@ -252,15 +263,15 @@ void drawInventory()
 
 void initHud()
 {
+    initDebugInfo();
     initMinimap();
-    initPlayerAvatar();
 }
 
 void updateHud()
 {
+    updateDebugInfo();
     updateMinimap();
     updateHealth();
-    updatePlayerAvatar();
 }
 
 void drawHud()
@@ -278,15 +289,19 @@ void drawHud()
     textAreaColor = HUD_TEXT_COLOR;
     windowColor = HUD_COLOR;
     
-    drawPlayerAvatar();
-    
     enableWindowStyles();    
     
-    drawStats();
+    if(debugInfoEnabled)
+    {
+        drawDebugInfo();
+    }
     
     drawHealth();
     
-    drawMinimap();
+    if(minimapEnabled)
+    {
+        drawMinimap();
+    }
     
     drawMessage();
     

@@ -3,6 +3,9 @@
 #include <map.hpp>
 #include <view.hpp>
 
+float cameraPosX;
+float cameraPosY;
+
 float playerPosX;
 float playerPosY;
 float playerAngle;
@@ -17,7 +20,36 @@ float runMoveMultiplier = 2.0f;
 float runStrafeMultiplier = 2.0f;
 
 float playerHealth;
-int playerIsMoving;
+
+int animFrame;
+float animTimer;
+
+void updateCamera()
+{
+    
+    float followDistance = CAMERA_FOLLOW_DISTANCE;
+    
+    float playerForwardX = cos(playerAngle * DEG2RAD);
+    float playerForwardY = sin(playerAngle * DEG2RAD);
+
+    cameraPosX = playerPosX - playerForwardX * followDistance;
+    cameraPosY = playerPosY - playerForwardY * followDistance;
+
+    while(MAP_CELL_TYPE(getMapCell(0, W2C(cameraPosX), W2C(cameraPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_WALL && followDistance > 0)
+    {
+        followDistance -= CAMERA_FOLLOW_DISTANCE / CAMERA_FOLLOW_STEPS;
+        if(followDistance < 0) { followDistance = 0; }
+
+        cameraPosX = playerPosX - playerForwardX * followDistance;
+        cameraPosY = playerPosY - playerForwardY * followDistance;
+    }
+    
+}
+
+void drawPlayer()
+{
+    addSortedSprite(animFrame, playerPosX, playerPosY, PLAYER_HEIGHT);
+}
 
 void updatePlayer()
 {
@@ -198,29 +230,30 @@ void updatePlayer()
             beep(PLAYER_BEEP_FREQUENCY,PLAYER_BEEP_MILLIS);
         }
 
+        
     }
 	
 	if(moveForward || moveBackwards)
 	{
-        playerIsMoving = 1;
+        animTimer += 1.0f / SCREEN_FPS;
+		
+		if(animTimer > 1.0f / PLAYER_ANIM_FPS) { animFrame = (animFrame + 1) % 2; animTimer -= 1.0f / PLAYER_ANIM_FPS; }    
+
 	}
-    else
-    {
-        playerIsMoving = 0;
-    }
     
     if(isKeyPressed(KEY_SPACE))
     {
-        playerHealth -= 20.0f * 1.0f / PLAYER_ANIM_FPS;
+        playerHealth -= 60.0f * 1.0f / PLAYER_ANIM_FPS;
         if(playerHealth < 0) { playerHealth = 0; }
     }
     else
     {
-        playerHealth += 10.0f * 1.0f / PLAYER_ANIM_FPS;
+        playerHealth += 30.0f * 1.0f / PLAYER_ANIM_FPS;
         if(playerHealth > PLAYER_MAX_HEALTH) { playerHealth = PLAYER_MAX_HEALTH; }
     }
     
-        
+
+    updateCamera();
 }
 
 void initPlayer()
@@ -246,10 +279,15 @@ void initPlayer()
     
     playerAngle = 270.0f;
  
+    updateCamera();
+
     playerControlMode = PLAYER_CONTROL_MODE_CLASSIC; 
     mouseSensitivity = 0.5f;
 	
     playerHealth = PLAYER_MAX_HEALTH;
+    
+    animFrame = 0;
+    animTimer = 0;
 }
 
 int getPlayerDirection()

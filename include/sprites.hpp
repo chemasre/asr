@@ -33,6 +33,8 @@ extern Sprite sprites[MAX_SPRITES];
 
 void initSprites();
 void drawSprite(int index, int posX, int posY);
+void drawScaledSprite(int index, int posX, int posY, float scale);
+SpriteCell getSpriteCell(int index, int posX, int posY, SpriteCell boundary);
 
 
 

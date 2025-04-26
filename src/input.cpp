@@ -12,7 +12,6 @@ int lastMousePositionY = 0;
 int mouseDeltaX = 0;
 int mouseDeltaY = 0;
 
-
 int isKeyPressed(int k)
 {
     return GetKeyState(k) & 0x8000;
