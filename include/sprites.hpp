@@ -29,10 +29,11 @@ struct Sprite
     SpriteCell cells[SPRITE_SIZE][SPRITE_SIZE];
 };
 
-
 extern Sprite sprites[MAX_SPRITES];
 
 void initSprites();
 void drawSprite(int index, int posX, int posY);
+
+
 
 #endif

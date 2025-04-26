@@ -6,6 +6,7 @@
 #include <hud.hpp>
 #include <info_line.hpp>
 #include <player.hpp>
+#include <enemies.hpp>
 #include <map.hpp>
 #include <sprites.hpp>
 #include <textures.hpp>
@@ -90,6 +91,7 @@ void main()
     initMap();
     initView();
     initPlayer();
+    initEnemies();
     initMenu();
     
     setScreenTitle(SCREEN_TITLE);
@@ -294,6 +296,7 @@ void main()
         else // (gameState == GAMESTATE_PLAYING)
         {
             updatePlayer();
+            updateEnemies();
             updateView();
             updateHud();
             
@@ -309,16 +312,17 @@ void main()
         updateScreen();
         //clearScreen();
         
-        drawView();
 
         if(gameState == GAMESTATE_MAINMENU)
         {
+            drawView();
             drawMenu();
             drawInfoLine();
         }
         else // gameState == GAMESTATE_PLAYING
         {
-			drawPlayer();
+			drawEnemies();
+            drawView();
             drawHud();
         }
         

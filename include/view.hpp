@@ -15,6 +15,8 @@
 #define SUNLIGHT_DIRECTION_STEPS 10
 #define LIGHT_INTENSITY_STEPS 10
 
+#define MAX_SORTED_SPRITES 100
+
 #define VIEW_NEAR_DISTANCE 0.01f
 
 #define VIEW_WORLD_Z 1.0f
@@ -25,12 +27,11 @@ extern float sunLightDirection;
 extern float sunLightIntensity;
 extern float ambientLightIntensity;
 
-
-
-
 void initView();
 void updateView();
 void drawView();
+
+void addSortedSprite(int sprite, float x, float y);
 
 // private
 

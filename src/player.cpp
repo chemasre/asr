@@ -16,9 +16,8 @@ float strafeSpeed = C2W(2.5f);
 float runMoveMultiplier = 2.0f;
 float runStrafeMultiplier = 2.0f;
 
-int animFrame;
-float animTimer;
-
+float playerHealth;
+int playerIsMoving;
 
 void updatePlayer()
 {
@@ -203,21 +202,30 @@ void updatePlayer()
 	
 	if(moveForward || moveBackwards)
 	{
-		animTimer += 1.0f / SCREEN_FPS;
-		
-		if(animTimer > 1.0f / PLAYER_ANIM_FPS) { animFrame = (animFrame + 1) % 2; animTimer -= 1.0f / PLAYER_ANIM_FPS; }
+        playerIsMoving = 1;
 	}
+    else
+    {
+        playerIsMoving = 0;
+    }
+    
+    if(isKeyPressed(KEY_SPACE))
+    {
+        playerHealth -= 20.0f * 1.0f / PLAYER_ANIM_FPS;
+        if(playerHealth < 0) { playerHealth = 0; }
+    }
+    else
+    {
+        playerHealth += 10.0f * 1.0f / PLAYER_ANIM_FPS;
+        if(playerHealth > PLAYER_MAX_HEALTH) { playerHealth = PLAYER_MAX_HEALTH; }
+    }
     
         
 }
 
-void drawPlayer()
-{
-	drawSprite(animFrame, screenWidth / 2, screenHeight - 1);
-}
-
 void initPlayer()
 {    
+
     int startCellX = 0;
     int startCellY = 0;
     for(int x = 0; x < MAP_WIDTH; x++)
@@ -241,8 +249,7 @@ void initPlayer()
     playerControlMode = PLAYER_CONTROL_MODE_CLASSIC; 
     mouseSensitivity = 0.5f;
 	
-	animTimer = 0;
-	animFrame = 0;
+    playerHealth = PLAYER_MAX_HEALTH;
 }
 
 int getPlayerDirection()
