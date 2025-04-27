@@ -118,6 +118,7 @@ void main()
     
     setMenu(MENU_MAIN, MENUMAIN_START, MENUMAIN_DESCRIPTION_START, MENUMAIN_DESCRIPTION_SIZE, MENUMAIN_OPTIONS_SIZE, 0);
     
+    appendInfoLine("                            ");    
     appendInfoLine("ONCE UPON A TIME DURING A HOLY WEEK CAME THIS LITTLE EXPERIMENT BY JOSE MANUEL (CHEMA) SOLIS");
     appendInfoLine("                            ");
     appendInfoLine("IT'S DEDICATED TO MY COUSIN, FRANCISCO MIGUEL, WHO LET ME PLAY WOLFENSTEIN 3D FOR THE FIRST TIME AT HIS PC, DURING THE EARLY 90s");
@@ -134,7 +135,15 @@ void main()
     appendInfoLine("                            ");
     appendInfoLine("IF YOU ARE BRAVE");
     appendInfoLine("                            ");
-    
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
+    appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");    
     setInfoLineScrollPosition(screenWidth / 2);
     
     ambientLightIntensity = getMapParam(0, MAP_PARAM_LIGHT_AMBIENT_INTENSITY) * 1.0f / 15;

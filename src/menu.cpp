@@ -121,6 +121,13 @@ void drawMenu()
     enableWindowStyles();
     windowColor = MENU_WINDOW_COLOR;
     windowTitleColor = MENU_TITLE_COLOR;
+    windowCornerTopLeft = '.';
+    windowCornerTopRight = '.';
+    windowCornerBottomLeft = '.';
+    windowCornerBottomRight = '.';
+    windowBorderHorizontal = '~';
+    windowBorderVertical = '!';
+
     drawWindow(x, y, width, height, menuLines[titleLine], MENU_WINDOW_COLOR);
     disableWindowStyles();
     
