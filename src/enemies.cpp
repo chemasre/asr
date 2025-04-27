@@ -37,6 +37,18 @@ void initEnemies()
                 
                 enemyCount ++;
             }
+            else if(MAP_CELL_TYPE(maps[0][y][x]) == 0)
+            {
+                if(MAP_CELL_PARAM(maps[0][y][x]) == 1)
+                {
+                    enemies[enemyCount].posX = C2W(x + 0.8f);
+                    enemies[enemyCount].posY = C2W(y + 0.5f);
+                    enemies[enemyCount].sprite = ENEMY_SOFA_SPRITE;
+                    enemies[enemyCount].height = ENEMY_SOFA_HEIGHT;
+                    
+                    enemyCount ++;
+                }
+            }
         }
         
     }
