@@ -186,7 +186,7 @@ void drawDebugInfo()
 void updateHealth()
 {
     healthSpritePositionX = screenWidth / 2 - HEALTH_WIDTH / 2;
-    healthSpritePositionY = 1; //screenHeight - HEALTH_HEIGHT - 1;
+    healthSpritePositionY = screenHeight - HEALTH_HEIGHT - 1;
     
     healthBarWidth = 1;
     healthBarPositionX = healthSpritePositionX + HEALTH_WIDTH - healthBarWidth;
@@ -281,10 +281,10 @@ void drawHud()
     windowCornerBottomLeft = '.';
     windowCornerBottomRight = '.';
     
-    windowBorderHorizontal = '-';
-    windowBorderVertical = '|';
-    windowDividerTipLeft = '|';
-    windowDividerTipRight = '|';
+    windowBorderHorizontal = '~';
+    windowBorderVertical = '!';
+    windowDividerTipLeft = '!';
+    windowDividerTipRight = '!';
     
     textAreaColor = HUD_TEXT_COLOR;
     windowColor = HUD_COLOR;

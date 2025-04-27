@@ -13,6 +13,11 @@
 #define GROUND_COLOR MAKE_COLOR(131, 5, 5)
 #define SKY_COLOR MAKE_COLOR(149, 74, 0)
 
+int viewportWidth;
+int viewportHeight;
+
+int viewportCropBottom;
+int viewportCropRight;
 
 float viewDistance;
 float fov;
@@ -30,6 +35,7 @@ float ambientLightIntensity = 0.5f;
 
 float* zBuffer;
 int zBufferWidth;
+
 
 struct SortedSprite
 {
@@ -65,7 +71,7 @@ void clearZBuffer()
 void initZBuffer()
 {
     zBuffer = 0;  
-    setZBufferWidth(screenWidth);
+    setZBufferWidth(viewportWidth);
 }
 
 void setZBufferValue(int x, float v)
@@ -100,8 +106,8 @@ void clearSortedSprites()
     sortedSpritesCount = 0;
 }
 
-int enemy1ScreenX;
-int enemy1ScreenY;
+int enemy1ViewportX;
+int enemy1ViewportY;
 float enemy1PlayerAngle;
 float enemy1PlayerX;
 float enemy1PlayerY;
@@ -164,7 +170,7 @@ void drawSortedSprites()
         float h = VIEW_NEAR_DISTANCE / sin(playerToSpriteAngle * DEG2RAD);
         float spriteViewX = - h * cos(playerToSpriteAngle * DEG2RAD);
         
-        int spriteScreenX = screenWidth / 2 + spriteViewX * screenWidth / viewWidth;
+        int spriteViewportX = viewportWidth / 2 + spriteViewX * viewportWidth / viewWidth;
         
         float spriteVerticalLowAngle = atan2(spriteLowPlayerZ, sortedSpritesDistances[i]) * RAD2DEG;
         float spriteVerticalHighAngle = atan2(spriteHighPlayerZ, sortedSpritesDistances[i]) * RAD2DEG;
@@ -172,12 +178,12 @@ void drawSortedSprites()
         h = VIEW_NEAR_DISTANCE / cos(spriteVerticalLowAngle * DEG2RAD);
         float spriteViewLowZ = -h * sin(spriteVerticalLowAngle * DEG2RAD);
 
-        int spriteScreenLowY = screenHeight / 2 + spriteViewLowZ * screenHeight / viewHeight;
+        int spriteViewportLowY = viewportHeight / 2 + spriteViewLowZ * viewportHeight / viewHeight;
         
         h = VIEW_NEAR_DISTANCE / cos(spriteVerticalHighAngle * DEG2RAD);
         float spriteViewHighZ = -h * sin(spriteVerticalHighAngle * DEG2RAD);
 
-        int spriteScreenHighY = screenHeight / 2 + spriteViewHighZ * screenHeight / viewHeight;
+        int spriteViewportHighY = viewportHeight / 2 + spriteViewHighZ * viewportHeight / viewHeight;
         
         
 
@@ -187,7 +193,7 @@ void drawSortedSprites()
             
             int clipStartX = -1;
             float normalizedDistance = sortedSpritesDistances[i] / VIEW_DISTANCE;
-            int spriteLeft = spriteScreenX - sprites[sortedSprites[i].sprite].pivotX;
+            int spriteLeft = spriteViewportX - sprites[sortedSprites[i].sprite].pivotX;
 
             for(int j = spriteLeft; j < spriteLeft + SPRITE_SIZE; j++)
             {
@@ -204,18 +210,18 @@ void drawSortedSprites()
                 // Swipe right looking for the first occluded position
                 
                 int clipRight = clipStartX;
-                while(normalizedDistance < getZBufferValue(clipRight) && clipRight < screenWidth - 1) { clipRight ++; }
+                while(normalizedDistance < getZBufferValue(clipRight) && clipRight < viewportWidth - 1) { clipRight ++; }
 
                 if(clipRight - clipLeft > 0)
                 {
                     // Clip the sprite using the visible rect found
                     
-                    float spriteScale = fabs(spriteScreenLowY - spriteScreenHighY) / SPRITE_SIZE;
+                    float spriteScale = fabs(spriteViewportLowY - spriteViewportHighY) / SPRITE_SIZE;
                     
                     enableClipArea();
-                    setClipArea(clipLeft, 0, clipRight - clipLeft, screenHeight);            
-                    //drawSprite(sortedSprites[i].sprite, spriteScreenX, spriteScreenY);
-                    drawScaledSprite(sortedSprites[i].sprite, spriteScreenX, spriteScreenLowY, spriteScale);
+                    setClipArea(clipLeft, 0, clipRight - clipLeft, viewportHeight);            
+                    //drawSprite(sortedSprites[i].sprite, spriteViewportX, spriteViewportY);
+                    drawScaledSprite(sortedSprites[i].sprite, spriteViewportX, spriteViewportLowY, spriteScale);
                     disableClipArea();
                 }
             }
@@ -225,11 +231,20 @@ void drawSortedSprites()
     }
 }
 
+void setViewportCrop(int right, int bottom)
+{
+    viewportCropBottom = bottom;
+    viewportCropRight = right;
+}
+
 
 void initView()
 {
     fov = FOV;
     viewDistance = VIEW_DISTANCE;
+    
+    viewportWidth = screenWidth;
+    viewportHeight = screenHeight;
     
     initZBuffer();
     initSortedSprites();
@@ -237,6 +252,9 @@ void initView()
 
 void updateView()
 {
+    viewportWidth = screenWidth - viewportCropRight;
+    viewportHeight = screenHeight - viewportCropBottom;    
+    
     int increaseFov = isKeyPressed(KEY_2);
     int decreaseFov = isKeyPressed(KEY_1);
     
@@ -342,12 +360,12 @@ void updateView()
         
     }    
     
-    if(zBufferWidth != screenWidth) { setZBufferWidth(screenWidth); }
+    if(zBufferWidth != viewportWidth) { setZBufferWidth(viewportWidth); }
 
 }
 
 
-void drawColumn(int screenX, float normalizedDistance, float direction, int texture, float u)
+void drawColumn(int viewportX, float normalizedDistance, float direction, int texture, float u)
 {
     float dirX = cos(direction * DEG2RAD);
     float dirY = sin(direction * DEG2RAD);
@@ -361,13 +379,13 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
     float distance = normalizedDistance * viewDistance;
     float hypotenuse = distance / cos(halfFov * DEG2RAD);
     float viewHeight = getViewHeight();
-    float viewScale = viewHeight / screenHeight;
+    float viewScale = viewHeight / viewportHeight;
     
-    // int h = screenHeight * (1 - normalizedDistance) * (1 - normalizedDistance);
+    // int h = viewportHeight * (1 - normalizedDistance) * (1 - normalizedDistance);
     
-    for(int screenY = 0; screenY < screenHeight; screenY ++)
+    for(int viewportY = 0; viewportY < viewportHeight; viewportY ++)
     {
-        float viewY = viewScale * -(screenY - screenHeight / 2.0f);
+        float viewY = viewScale * -(viewportY - viewportHeight / 2.0f);
         float angle = atan2(viewY, VIEW_NEAR_DISTANCE);
         float viewWorldZ = VIEW_WORLD_Z + distance * sin(angle);
         
@@ -394,56 +412,56 @@ void drawColumn(int screenX, float normalizedDistance, float direction, int text
             
             int wallColor = MAKE_COLOR((int)(sample.r * 255), (int)(sample.g * 255), (int)(sample.b * 255));
             
-            setScreenCell(screenX, screenY, wallColor, l);
+            setScreenCell(viewportX, viewportY, wallColor, l);
             
-            setZBufferValue(screenX, normalizedDistance);
+            setZBufferValue(viewportX, normalizedDistance);
 
-            // if(screenY % 5 == 0 && screenX % 10 == 0)
+            // if(viewportY % 5 == 0 && viewportX % 10 == 0)
             // {
-                // drawFloat(screenX, screenY, "U", u);
-                // drawFloat(screenX, screenY + 1, "V", v);
-                // drawFloat(screenX, screenY + 2, "T", sample);
+                // drawFloat(viewportX, viewportY, "U", u);
+                // drawFloat(viewportX, viewportY + 1, "V", v);
+                // drawFloat(viewportX, viewportY + 2, "T", sample);
             // }
             
-            // if(screenY % 5 == 0 && screenX % 10 == 0)
+            // if(viewportY % 5 == 0 && viewportX % 10 == 0)
             // {
-                // drawFloat(screenX, screenY, "VY", viewY);
-                // drawFloat(screenX, screenY + 1, "A", angle * RAD2DEG);
-                // drawFloat(screenX, screenY + 2, "WZ", viewWorldZ);
+                // drawFloat(viewportX, viewportY, "VY", viewY);
+                // drawFloat(viewportX, viewportY + 1, "A", angle * RAD2DEG);
+                // drawFloat(viewportX, viewportY + 2, "WZ", viewWorldZ);
             // }
             
-            // if(screenY % 5 == 0 && screenX % 10 == 0)
+            // if(viewportY % 5 == 0 && viewportX % 10 == 0)
             // {
                 // float viewHeight = getViewHeight();
                 // float viewWidth = getViewHeight() * getViewAspect();
                 
-                // drawFloat(screenX, screenY, "VH", viewHeight);
-                // drawFloat(screenX, screenY + 1, "VW", viewWidth);
-                // drawFloat(screenX, screenY + 2, "VA", getViewAspect());
-                // drawFloat(screenX, screenY + 3, "WZ", viewWorldZ);
+                // drawFloat(viewportX, viewportY, "VH", viewHeight);
+                // drawFloat(viewportX, viewportY + 1, "VW", viewWidth);
+                // drawFloat(viewportX, viewportY + 2, "VA", getViewAspect());
+                // drawFloat(viewportX, viewportY + 3, "WZ", viewWorldZ);
             // }
         }
         else if(viewWorldZ < 0)  
         {
             // ground
             
-            float groundDistanceFactor = 1 - (screenY - (screenHeight/2.0f)) / (screenHeight/2.0f);
+            float groundDistanceFactor = 1 - (viewportY - (viewportHeight/2.0f)) / (viewportHeight/2.0f);
             int groundStep = (int)(groundDistanceFactor * GROUND_STEPS);
             if(groundStep >= GROUND_STEPS) { groundStep = GROUND_STEPS - 1; }
         
             char g = groundSteps[groundStep];
             
-            setScreenCell(screenX, screenY, GROUND_COLOR, g);
+            setScreenCell(viewportX, viewportY, GROUND_COLOR, g);
         }
         else
         {
             // sky
 
-            float skyHeightFactor = 1 - ((screenHeight/2.0f) - screenY)  / (screenHeight/2.0f);
+            float skyHeightFactor = 1 - ((viewportHeight/2.0f) - viewportY)  / (viewportHeight/2.0f);
             int skyStep = (int)(skyHeightFactor * SKY_STEPS);            
             if(skyStep >= SKY_STEPS) { skyStep = SKY_STEPS - 1; }
             char s = skySteps[skyStep];            
-            setScreenCell(screenX, screenY, SKY_COLOR, s);
+            setScreenCell(viewportX, viewportY, SKY_COLOR, s);
         }
     }
 }
@@ -459,23 +477,23 @@ float getViewHeight()
 
 float getViewAspect()
 {
-    float screenAspect = (screenWidth * fontWidth) / (float)(screenHeight * fontHeight);    
+    float viewportAspect = (viewportWidth * fontWidth) / (float)(viewportHeight * fontHeight);    
     
-    return screenAspect;
+    return viewportAspect;
 }
 
 void drawView()
 {
     clearZBuffer();
     
-    float centerX = (float)screenWidth / 2;
+    float centerX = (float)viewportWidth / 2;
     
     float viewHeight = getViewHeight();
     float viewWidth = viewHeight * getViewAspect();
     
-    float viewScale = viewWidth / screenWidth;
+    float viewScale = viewWidth / viewportWidth;
     
-    for(int screenX = 0; screenX < screenWidth; screenX ++)
+    for(int viewportX = 0; viewportX < viewportWidth; viewportX ++)
     {        
         float normalizedDistance;
         
@@ -484,8 +502,8 @@ void drawView()
         int texture;
         float u;
         
-        float screenDeviationX = screenX - centerX;
-        float viewDeviationX = screenDeviationX * viewScale;
+        float viewportDeviationX = viewportX - centerX;
+        float viewDeviationX = viewportDeviationX * viewScale;
         float viewDeviationAngle = atan2(viewDeviationX, VIEW_NEAR_DISTANCE) * RAD2DEG;
 
         int hit = rayCast(0, cameraPosX, cameraPosY, playerAngle + viewDeviationAngle, rayStep, viewDistance, &distance, &normal, &texture, &u);
@@ -506,11 +524,11 @@ void drawView()
             normalizedDistance = distance / viewDistance;
         }
         
-        drawColumn(screenX, normalizedDistance, normal, texture, u);
+        drawColumn(viewportX, normalizedDistance, normal, texture, u);
         
-        // if(screenX % 20 == 0)
+        // if(viewportX % 20 == 0)
         // {
-            // drawFloat(screenX, screenHeight/2, "VHA", viewDeviationAngle);
+            // drawFloat(viewportX, viewportHeight/2, "VHA", viewDeviationAngle);
         // }
         
     }

@@ -11,7 +11,7 @@ void initEnemies()
 {
     enemy1PosX = 57;
     enemy1PosY = 34;
-    enemy2PosX = 58;
+    enemy2PosX = 57.35f;
     enemy2PosY = 34;
 }
 

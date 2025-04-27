@@ -148,6 +148,7 @@ void main()
         if(gameState == GAMESTATE_MAINMENU)
         {
             updateMenu();
+            updateView();
             updateInfoLine();
             
             if(menu == MENU_MAIN)
@@ -160,6 +161,7 @@ void main()
                 {
                     if(menuOption == MENUMAIN_OPTION_PLAY)
                     {
+                        setViewportCrop(0, HEALTH_HEIGHT + 2);
                         gameState = GAMESTATE_PLAYING;
                     }
                     else if(menuOption == MENUMAIN_OPTION_CONTROLS)
@@ -302,6 +304,7 @@ void main()
             
             if(isKeyDown(KEY_ESC))
             {
+                setViewportCrop(0, 0);                
                 setMenu(MENU_MAIN, MENUMAIN_START, MENUMAIN_DESCRIPTION_START, MENUMAIN_DESCRIPTION_SIZE, MENUMAIN_OPTIONS_SIZE, 0);             
                 gameState = GAMESTATE_MAINMENU;
             }
@@ -312,7 +315,6 @@ void main()
         updateScreen();
         //clearScreen();
         
-
         if(gameState == GAMESTATE_MAINMENU)
         {
             drawView();

@@ -31,11 +31,12 @@ void initView();
 void updateView();
 void drawView();
 
+void setViewportCrop(int right, int bottom);
 void addSortedSprite(int sprite, float x, float y, float height);
 
 // private
 
-void drawColumn(int screenX, float depth, float light);
+void drawColumn(int viewportX, float depth, float light);
 void drawView();
 
 float getViewHeight();

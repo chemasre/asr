@@ -243,12 +243,12 @@ void updatePlayer()
     
     if(isKeyPressed(KEY_SPACE))
     {
-        playerHealth -= 60.0f * 1.0f / PLAYER_ANIM_FPS;
+        playerHealth -= 100.0f * 1.0f / PLAYER_ANIM_FPS;
         if(playerHealth < 0) { playerHealth = 0; }
     }
     else
     {
-        playerHealth += 30.0f * 1.0f / PLAYER_ANIM_FPS;
+        playerHealth += 60.0f * 1.0f / PLAYER_ANIM_FPS;
         if(playerHealth > PLAYER_MAX_HEALTH) { playerHealth = PLAYER_MAX_HEALTH; }
     }
     
