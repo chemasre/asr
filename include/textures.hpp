@@ -4,7 +4,7 @@
 #include <common_header.hpp>
 
 
-#define MAX_TEXTURES 2
+#define MAX_TEXTURES 3
 #define TEXTURE_SIZE 32
 
 #define TEXTURE_DIRECTORY "textures"

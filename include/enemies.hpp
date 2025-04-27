@@ -3,7 +3,10 @@
 
 #include <common_header.hpp>
 
-#define ENEMIES_HEIGHT 1.5f
+#define ENEMY_TWINS_SPRITE 2
+#define ENEMY_TWINS_HEIGHT 1.5f
+
+#define MAX_ENEMIES 10
 
 void initEnemies();
 void updateEnemies();

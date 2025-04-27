@@ -9,7 +9,7 @@
 
 #define MAP_FILE_PATTERN "map%02d.map"
 
-#define ITEM_TYPE_COUNT 3
+#define ITEM_TYPE_COUNT 4
 
 #define ITEM_TYPE_WIDTH 16
 #define ITEM_TYPE_HEIGHT (ITEM_TYPE_COUNT / ITEM_TYPE_WIDTH + 1)
@@ -89,14 +89,16 @@
 char itemTypeCharacters[ITEM_TYPE_COUNT] =
 { '.',
   '#',
-  '@'
+  '@',
+  'T'
 };
 
 char itemTypeDescriptions[ITEM_TYPE_COUNT][DESC_LENGTH + 1]
 {
     " FLOOR",
     " WALL",
-    " PLAYER"
+    " PLAYER",
+    " TWINS"
 };
 
 char itemParamDescriptions[ITEM_TYPE_COUNT][ITEM_PARAM_VALUES_COUNT][DESC_LENGTH + 1]
@@ -118,9 +120,9 @@ char itemParamDescriptions[ITEM_TYPE_COUNT][ITEM_PARAM_VALUES_COUNT][DESC_LENGTH
       " ", // 14
       " "  // 15
     },
-    { " SMILEY", // 0
-      " HITLER", // 1
-      " ", // 2
+    { " ROOM", // 0
+      " ELEVATOR", // 1
+      " CORRIDOR", // 2
       " ", // 3
       " ", // 4
       " ", // 5
