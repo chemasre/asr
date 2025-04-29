@@ -16,9 +16,13 @@
 #define W2C(x) ((x) / MAP_CELL_WORLD_SIZE)
 #define C2W(x) ((x) * MAP_CELL_WORLD_SIZE)
 
-#define MAP_CELL_TYPE(x) (0xFF & ((x) >> 8))
-#define MAP_CELL_PARAM(x) (0xFF & (x))
-#define MAKE_MAP_CELL(type,param) (((type) << 8) | 0xFF & (param))
+#define CELL_PARAMS_COUNT 3
+
+#define MAP_CELL_TYPE(x) (0xFF & ((x) >> (8 * CELL_PARAMS_COUNT)))
+#define MAP_CELL_PARAM(x, p) (0xFF & ((x) >> (8 * (p))))
+#define MAKE_MAP_CELL(type) ((type) << (8 * CELL_PARAMS_COUNT))
+#define MAKE_MAP_CELL_PARAM(p, v) ((v) << (8 * (p)))
+
 
 #define MAP_CELL_TYPE_FREE 0 
 #define MAP_CELL_TYPE_WALL 1

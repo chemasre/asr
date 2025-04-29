@@ -35,7 +35,7 @@ void updateCamera()
     cameraPosX = playerPosX - playerForwardX * followDistance;
     cameraPosY = playerPosY - playerForwardY * followDistance;
 
-    while(MAP_CELL_TYPE(getMapCell(0, W2C(cameraPosX), W2C(cameraPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) == MAP_CELL_TYPE_WALL && followDistance > 0)
+    while(MAP_CELL_TYPE(getMapCell(0, W2C(cameraPosX), W2C(cameraPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL))) == MAP_CELL_TYPE_WALL && followDistance > 0)
     {
         followDistance -= CAMERA_FOLLOW_DISTANCE / CAMERA_FOLLOW_STEPS;
         if(followDistance < 0) { followDistance = 0; }
@@ -212,16 +212,16 @@ void updatePlayer()
         if(nextPosY < 0) { nextPosY = 0; }
         else if(nextPosY > C2W(MAP_HEIGHT)) { nextPosY = C2W(MAP_HEIGHT); }
         
-        if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
+        if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL))) != MAP_CELL_TYPE_WALL)
         {
             playerPosX = nextPosX;
             playerPosY = nextPosY;
         }
-        else if(MAP_CELL_TYPE(getMapCell(0, W2C(playerPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
+        else if(MAP_CELL_TYPE(getMapCell(0, W2C(playerPosX), W2C(nextPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL))) != MAP_CELL_TYPE_WALL)
         {
             playerPosY = nextPosY;            
         }
-        else if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(playerPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0))) != MAP_CELL_TYPE_WALL)
+        else if(MAP_CELL_TYPE(getMapCell(0, W2C(nextPosX), W2C(playerPosY), MAKE_MAP_CELL(MAP_CELL_TYPE_WALL))) != MAP_CELL_TYPE_WALL)
         {
             playerPosX = nextPosX;            
         }

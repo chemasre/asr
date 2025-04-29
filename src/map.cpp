@@ -87,8 +87,8 @@ int rayCastStep(int m, float prevPosX, float prevPosY, float nextPosX, float nex
     int nextMapX = (int)nextPosX;
     int nextMapY = (int)nextPosY;
     
-    int previousCell = getMapCell(m, prevMapX, prevMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0));
-    int nextCell = getMapCell(m, nextMapX, nextMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL, 0));
+    int previousCell = getMapCell(m, prevMapX, prevMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL));
+    int nextCell = getMapCell(m, nextMapX, nextMapY, MAKE_MAP_CELL(MAP_CELL_TYPE_WALL));
     
     if(MAP_CELL_TYPE(previousCell) != MAP_CELL_TYPE_WALL && MAP_CELL_TYPE(nextCell) == MAP_CELL_TYPE_WALL)
     {
@@ -113,7 +113,7 @@ int rayCastStep(int m, float prevPosX, float prevPosY, float nextPosX, float nex
             *u = 1 - fabs(nextPosY - (int)nextPosY);
         }
 
-        *tex = MAP_CELL_PARAM(nextCell);
+        *tex = MAP_CELL_PARAM(nextCell, 0);
     }
     
     if(MAP_CELL_TYPE(nextCell) == MAP_CELL_TYPE_WALL)

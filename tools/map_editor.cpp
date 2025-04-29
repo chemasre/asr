@@ -17,21 +17,25 @@
 #define ITEM_TYPE_POSITION_X (CELLS_WIDTH - ITEM_TYPE_WIDTH - 2)
 #define ITEM_TYPE_POSITION_Y 4
 
-#define ITEM_PARAM_VALUES_COUNT 16
+#define ITEM_PARAMS_COUNT 2
 
-#define ITEM_PARAM_WIDTH ITEM_PARAM_VALUES_COUNT
-#define ITEM_PARAM_HEIGHT 1
+#define ITEM_PARAMS_VALUES_COUNT 16
 
-#define ITEM_PARAM_POSITION_X (CELLS_WIDTH - ITEM_PARAM_WIDTH - 2)
-#define ITEM_PARAM_POSITION_Y (ITEM_TYPE_POSITION_Y + ITEM_TYPE_HEIGHT + 2 + 2)
+#define ITEM_PARAMS_WIDTH ITEM_PARAMS_VALUES_COUNT
+#define ITEM_PARAMS_HEIGHT (ITEM_PARAMS_COUNT * 2 - 1)
+
+#define ITEM_PARAMS_POSITION_X (CELLS_WIDTH - ITEM_PARAMS_WIDTH - 2)
+#define ITEM_PARAMS_POSITION_Y (ITEM_TYPE_POSITION_Y + ITEM_TYPE_HEIGHT + 2 + 2)
 
 #define ITEM_DESC_POSITION_X (CELLS_WIDTH - ITEM_DESC_WIDTH - 2)
-#define ITEM_DESC_POSITION_Y (ITEM_PARAM_POSITION_Y + ITEM_PARAM_HEIGHT + 2 + 2)
+#define ITEM_DESC_POSITION_Y (ITEM_PARAMS_POSITION_Y + ITEM_PARAMS_HEIGHT + 2 + 2)
 
 #define DESC_LENGTH 16
 
 #define ITEM_DESC_WIDTH DESC_LENGTH
-#define ITEM_DESC_HEIGHT 2
+#define ITEM_DESC_HEIGHT (ITEM_PARAMS_COUNT + 1)
+
+#define ITEM_PARAM_DESC_MAXPATTERNS 100
 
 // Bottom aligned
 
@@ -91,6 +95,7 @@ char itemTypeCharacters[ITEM_TYPE_COUNT] =
   '#',
   '@',
   'T'
+  
 };
 
 char itemTypeDescriptions[ITEM_TYPE_COUNT][DESC_LENGTH + 1]
@@ -101,59 +106,52 @@ char itemTypeDescriptions[ITEM_TYPE_COUNT][DESC_LENGTH + 1]
     " TWINS"
 };
 
-char itemParamDescriptions[ITEM_TYPE_COUNT][ITEM_PARAM_VALUES_COUNT][DESC_LENGTH + 1]
+struct ItemParamDescriptionPattern
 {
-    { " ", // 0
-      " ", // 1
-      " ", // 2
-      " ", // 3
-      " ", // 4
-      " ", // 5
-      " ", // 6
-      " ", // 7
-      " ", // 8
-      " ", // 9
-      " ", // 10
-      " ", // 11
-      " ", // 12
-      " ", // 13
-      " ", // 14
-      " "  // 15
+	int param;
+	int value;
+	char description[DESC_LENGTH + 1];
+};
+
+ItemParamDescriptionPattern itemParamDescriptionPatterns[ITEM_TYPE_COUNT][ITEM_PARAM_DESC_MAXPATTERNS] =
+{
+	// TYPE 0
+	
+    {
+	  { 0, 0, " EMPTY"},
+	  { 0, 1, " SOFAS"},
+	  
+	  { 1, 0, " DEFAULT"},
+	  { 1, 1, " HORIZONTAL"},	  
+	  { 1, 2, " VERTICAL"},	  
+	  { -1, 0, "" }
     },
-    { " ROOM", // 0
-      " ELEVATOR", // 1
-      " CORRIDOR", // 2
-      " ", // 3
-      " ", // 4
-      " ", // 5
-      " ", // 6
-      " ", // 7
-      " ", // 8
-      " ", // 9
-      " ", // 10
-      " ", // 11
-      " ", // 12
-      " ", // 13
-      " ", // 14
-      " "  // 15
+
+	// TYPE 1
+
+    {
+	  { 0, 0, " ROOM" },
+      { 0, 1, " ELEVATOR" },
+      { 0, 2, " CORRIDOR" },
+	  { -1, 0, "" }
     },
-    { " NORTH", // 0
-      " EAST",  // 1
-      " SOUTH", // 2
-      " WEST",  // 3
-      " ", // 4
-      " ", // 5
-      " ", // 6
-      " ", // 7
-      " ", // 8
-      " ", // 9
-      " ", // 10
-      " ", // 11
-      " ", // 12
-      " ", // 13
-      " ", // 14
-      " "  // 15
+	
+	// TYPE 2
+
+    { 
+	  { 0, 0, " NORTH"},
+	  { 0, 1, " EAST" },
+	  { 0, 2, " SOUTH"},
+	  { 0, 3, " WEST" },
+	  { -1, 0, "" }
+    },
+
+	// TYPE 3
+
+    { 
+	  { -1, 0, "" }
     }
+
 };
 
 char mapParamsDescriptions[MAP_PARAMS_COUNT][MAP_PARAMS_VALUES_COUNT][DESC_LENGTH + 1]
@@ -230,7 +228,7 @@ char mapParamsDescriptions[MAP_PARAMS_COUNT][MAP_PARAMS_VALUES_COUNT][DESC_LENGT
 };
 
 
-int itemParamColors[ITEM_PARAM_VALUES_COUNT]
+int itemParamColors[ITEM_PARAMS_VALUES_COUNT]
 {
     MAKE_COLOR(231,72,86),
     MAKE_COLOR(19,161,14 ),
@@ -260,7 +258,7 @@ int selectedTool;
 
 int selectedSlot;
 int selectedItemType;
-int selectedItemParam;
+int selectedItemParams[ITEM_PARAMS_COUNT];
 
 int drawAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 int drawAreaPosY = 4;
@@ -283,9 +281,14 @@ void drawUI()
 {
     drawWindow(ITEM_TYPE_POSITION_X - 1, ITEM_TYPE_POSITION_Y - 3, ITEM_TYPE_WIDTH + 2, ITEM_TYPE_HEIGHT + 4, "TYPE", MAKE_COLOR(255, 255, 0));
     
-    drawWindow(ITEM_PARAM_POSITION_X - 1, ITEM_PARAM_POSITION_Y - 3, ITEM_PARAM_WIDTH + 2, ITEM_PARAM_HEIGHT + 4, "PARAM", MAKE_COLOR(255, 255, 0));    
+    drawWindow(ITEM_PARAMS_POSITION_X - 1, ITEM_PARAMS_POSITION_Y - 3, ITEM_PARAMS_WIDTH + 2, ITEM_PARAMS_HEIGHT + 4, "ITEM PARAMS", MAKE_COLOR(255, 255, 0));    
 
     drawWindow(ITEM_DESC_POSITION_X - 1, ITEM_DESC_POSITION_Y - 3, ITEM_DESC_WIDTH + 2, ITEM_DESC_HEIGHT + 4, "DESC", MAKE_COLOR(255, 255, 0));    
+    for(int i = 0; i < ITEM_PARAMS_COUNT; i ++)
+    {
+        fillScreenArea(ITEM_PARAMS_POSITION_X, ITEM_PARAMS_POSITION_Y + i * 2 + 1, ITEM_PARAMS_WIDTH, 1, MAKE_COLOR(255, 255, 0), '-');
+    }
+
     
     drawWindow(MAP_PARAMS_POSITION_X - 1, MAP_PARAMS_POSITION_Y - 3, MAP_PARAMS_WIDTH + 2, MAP_PARAMS_HEIGHT + 4, "MAP PARAMS", MAKE_COLOR(255, 255, 0));
     
@@ -320,20 +323,60 @@ void drawUI()
     }
     
     
-    for(int x = 0; x < ITEM_PARAM_WIDTH; x++)
-    {
-        int color;
+	for(int p = 0; p < ITEM_PARAMS_COUNT; p++)
+	{
+		for(int x = 0; x < ITEM_PARAMS_WIDTH; x++)
+		{
+			int color;
+			
+			if(selectedItemParams[p]  == x) { color = COLOR_SELECTED; }
+			else { color = itemParamColors[x]; }            
+			
+			setScreenCell(ITEM_PARAMS_POSITION_X + x, ITEM_PARAMS_POSITION_Y + p * 2, color, x <= 9 ? '0' + x : 'A' + x - 10);
+		}
+	}
+	
+	int hasItemDescription = 0;
+	
+	if(selectedItemType < ITEM_TYPE_COUNT)
+	{
+		drawString(COLOR_SELECTED, itemTypeDescriptions[selectedItemType], ITEM_DESC_POSITION_X, ITEM_DESC_POSITION_Y);
+		hasItemDescription = 1;
+	}
+		
+	if(hasItemDescription)
+	{
+		int foundPrevious = 1;
+		int p = 0;
+		
+		while(p < ITEM_PARAMS_COUNT && foundPrevious)
+		{
+			int i = 0;
+			int found = 0;
+			int foundIndex = 0;
+			int none = 0;
+			while(!(found || none) && i < ITEM_PARAM_DESC_MAXPATTERNS)
+			{
+				if(itemParamDescriptionPatterns[selectedItemType][i].param < 0) { none = 1; }
+				else if(itemParamDescriptionPatterns[selectedItemType][i].param == p &&
+						itemParamDescriptionPatterns[selectedItemType][i].value == selectedItemParams[p]) { found = 1; foundIndex = i; }
+				else { i ++; }
+
+			}
+			
+			if(found)
+			{
+				drawString(COLOR_SELECTED, itemParamDescriptionPatterns[selectedItemType][foundIndex].description, ITEM_DESC_POSITION_X, ITEM_DESC_POSITION_Y +1 +  p);
+				
+				p ++;
+			}
+			else
+			{
+				foundPrevious = 0;
+			}
+		}
+	}
         
-        if(selectedItemParam  == x) { color = COLOR_SELECTED; }
-        else { color = itemParamColors[x]; }            
-        
-        setScreenCell(ITEM_PARAM_POSITION_X + x, ITEM_PARAM_POSITION_Y, color, x <= 9 ? '0' + x : 'A' + x - 10);
-    }
-    
-        
-    drawString(COLOR_SELECTED, itemTypeDescriptions[selectedItemType], ITEM_DESC_POSITION_X, ITEM_DESC_POSITION_Y);
-    drawString(COLOR_SELECTED, itemParamDescriptions[selectedItemType][selectedItemParam], ITEM_DESC_POSITION_X, ITEM_DESC_POSITION_Y + 1);
-    
     for(int x = 0; x < MAP_PARAMS_WIDTH; x++)
     {
         for(int y = 0; y < MAP_PARAMS_COUNT; y ++)
@@ -358,7 +401,7 @@ void drawUI()
         for(int x = 0; x < drawAreaWidth; x ++)
         {
             int type = MAP_CELL_TYPE(_mapCells[selectedSlot][y][x]);
-            int param = MAP_CELL_PARAM(_mapCells[selectedSlot][y][x]);
+            int param = MAP_CELL_PARAM(_mapCells[selectedSlot][y][x], 0);
                         
             setScreenCell(drawAreaPosX + x, drawAreaPosY + y, itemParamColors[param], itemTypeCharacters[type]);
         }
@@ -427,7 +470,7 @@ int tryLoadMap(int slot)
         {
             for(int x = 0; x < drawAreaWidth; x++)
             {
-                fread(&_mapCells[slot][y][x], sizeof(int), 1, file);
+                fread(&_mapCells[slot][y][x], sizeof(int), 1, file);				
             }
         }
 
@@ -489,7 +532,7 @@ int trySaveMap(int slot)
     return success;
 }
 
-void fillMap(int cellX, int cellY, int replacingType, int replacingParam)
+void fillMap(int cellX, int cellY, int replacingType, int replacingParams[ITEM_PARAMS_COUNT])
 {
     if(cellX < 0 || cellX > drawAreaWidth - 1 || cellY < 0 || cellY > drawAreaHeight - 1)
     {
@@ -498,22 +541,37 @@ void fillMap(int cellX, int cellY, int replacingType, int replacingParam)
     else
     {
         int existingType = MAP_CELL_TYPE(_mapCells[selectedSlot][cellY][cellX]);
-        int existingParam = MAP_CELL_PARAM(_mapCells[selectedSlot][cellY][cellX]);
+		
+        int existingParams[ITEM_PARAMS_COUNT];
+
+		for(int p = 0; p < ITEM_PARAMS_COUNT; p++)
+		{
+			existingParams[p] = MAP_CELL_PARAM(_mapCells[selectedSlot][cellY][cellX], p);
+		}
+		
+		int sameParams = 1;
+		int p = 0;
+		while(sameParams && p < ITEM_PARAMS_COUNT) { sameParams = sameParams && (existingParams[p] == replacingParams[p]); p++; }
+		
 
         if(existingType != replacingType ||
-           existingType == replacingType && existingParam != replacingParam ||
-           (existingType == selectedItemType && existingParam == selectedItemParam))
+           existingType == replacingType && !sameParams ||
+           (existingType == selectedItemType && sameParams))
         {
             return;
         }
         else
         {
-            _mapCells[selectedSlot][cellY][cellX] = MAKE_MAP_CELL(selectedItemType, selectedItemParam);
+            _mapCells[selectedSlot][cellY][cellX] = MAKE_MAP_CELL(selectedItemType);
+			for(int p = 0; p < ITEM_PARAMS_COUNT; p++)
+			{
+				_mapCells[selectedSlot][cellY][cellX] |= MAKE_MAP_CELL_PARAM(p, selectedItemParams[p]);
+			}
             
-            fillMap(cellX + 1, cellY, replacingType, replacingParam);
-            fillMap(cellX - 1, cellY, replacingType, replacingParam);
-            fillMap(cellX, cellY - 1, replacingType, replacingParam);
-            fillMap(cellX, cellY + 1, replacingType, replacingParam);        
+            fillMap(cellX + 1, cellY, replacingType, replacingParams);
+            fillMap(cellX - 1, cellY, replacingType, replacingParams);
+            fillMap(cellX, cellY - 1, replacingType, replacingParams);
+            fillMap(cellX, cellY + 1, replacingType, replacingParams);        
         }
     }
         
@@ -550,7 +608,7 @@ int main(int argc, char* argv[])
     
     selectedSlot = 0;
     selectedItemType = 0;
-    selectedItemParam = 0;
+    for(int p = 0; p < ITEM_PARAMS_COUNT; p++) { selectedItemParams[p] = 0; }
     
     commandHighlighted = 0;
     commandHighlightedTimer = 0;
@@ -671,12 +729,16 @@ int main(int argc, char* argv[])
             }
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
-                        ITEM_PARAM_POSITION_X, ITEM_PARAM_POSITION_Y,
-                        ITEM_PARAM_WIDTH, ITEM_PARAM_HEIGHT))
+                        ITEM_PARAMS_POSITION_X, ITEM_PARAMS_POSITION_Y,
+                        ITEM_PARAMS_WIDTH, ITEM_PARAMS_HEIGHT))
         {
             if(mouseLeftPressed)
             {            
-                selectedItemParam = cursorCellX - ITEM_PARAM_POSITION_X;
+				int line = (cursorCellY - ITEM_PARAMS_POSITION_Y);
+				if(line % 2 == 0)
+				{
+					selectedItemParams[line / 2] = cursorCellX - ITEM_PARAMS_POSITION_X;
+				}
             }            
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -706,7 +768,12 @@ int main(int argc, char* argv[])
                 {
                     if(mouseLeftPressed)
                     {  
-                        _mapCells[s][y][x] = MAKE_MAP_CELL(selectedItemType, selectedItemParam);
+                        _mapCells[s][y][x] = MAKE_MAP_CELL(selectedItemType);
+
+						for(int p = 0; p < ITEM_PARAMS_COUNT; p ++)
+						{
+							_mapCells[s][y][x] |= MAKE_MAP_CELL_PARAM(p, selectedItemParams[p]);
+						}
                     }
                     else
                     {
@@ -718,7 +785,11 @@ int main(int argc, char* argv[])
                     if(mouseLeftPressed)
                     {                      
                         selectedItemType = MAP_CELL_TYPE(_mapCells[s][y][x]);
-                        selectedItemParam = MAP_CELL_PARAM(_mapCells[s][y][x]);
+						
+						for(int p = 0; p < ITEM_PARAMS_COUNT; p++)
+						{
+							selectedItemParams[p] = MAP_CELL_PARAM(_mapCells[s][y][x], p);
+						}
                     }
                 }
                 else if(selectedTool == TOOL_FILL)
@@ -726,9 +797,13 @@ int main(int argc, char* argv[])
                     if(mouseLeftPressed)
                     {
                         int type = MAP_CELL_TYPE(_mapCells[s][y][x]);
-                        int param = MAP_CELL_PARAM(_mapCells[s][y][x]);
+                        int params[ITEM_PARAMS_COUNT];
+						for(int p = 0; p < ITEM_PARAMS_COUNT; p ++)
+						{
+							params[p] = MAP_CELL_PARAM(_mapCells[s][y][x], p);
+						}
 
-                        fillMap(x, y, type, param);
+                        fillMap(x, y, type, params);
                     }
                 }
 
