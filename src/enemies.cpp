@@ -28,7 +28,6 @@ void initEnemies()
     {
         for(int y = 0; y < MAP_HEIGHT; y++)
         {
-            if(MAP_CELL_TYPE(maps[0][y][x]) == 3)
 			int t = MAP_CELL_TYPE(maps[0][y][x]);
 			int p1 = MAP_CELL_PARAM(maps[0][y][x], 0);
 			int p2 = MAP_CELL_PARAM(maps[0][y][x], 1);
@@ -43,10 +42,8 @@ void initEnemies()
                 
                 enemyCount ++;
             }
-            else if(MAP_CELL_TYPE(maps[0][y][x]) == 0)
             else if(t == 0)
             {
-                if(MAP_CELL_PARAM(maps[0][y][x]) == 1)
                 if(p1 == 1)
                 {
                     enemies[enemyCount].sprite = ENEMY_SOFA_SPRITE;
