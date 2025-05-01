@@ -1,3 +1,6 @@
 [submodule "tools/cbmp"]
 	path = tools/cbmp
 	url = https://github.com/mattflow/cbmp.git
+[submodule "mods/portaudio"]
+	path = mods/portaudio
+	url = https://github.com/PortAudio/portaudio.git

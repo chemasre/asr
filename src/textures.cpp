@@ -42,7 +42,7 @@ void initTextures()
             
         }
         
-        printf("Loaded texture %s\n", filePath);
+        if(showStartupInfo) { printf("Loaded texture %s\n", filePath); }
         
         fclose(texFile);
     }

@@ -1,5 +1,6 @@
 #include "player.hpp"
 #include <sprites.hpp>
+#include <sound.hpp>
 #include <map.hpp>
 #include <view.hpp>
 
@@ -25,6 +26,72 @@ int animFrame;
 float animTimer;
 
 int playerIsMoving;
+int playerIsRunning;
+
+float lastHealth = 0;
+
+int soundMovingChannel;
+int healthChannel;
+
+void initPlayerSound()
+{
+    soundMovingChannel = reserveChannel();
+    
+    enableChannel(soundMovingChannel);
+    setChannelVolume(soundMovingChannel, 1);
+    startChannelTransition(soundMovingChannel, 30, 0, 0.1f);
+    enableChannelNoise(soundMovingChannel);
+    setChannelNoiseFrequency(soundMovingChannel, 20);
+    setChannelNoiseAmount(soundMovingChannel, 0.5f);
+    
+    healthChannel = reserveChannel();
+    
+    enableChannel(healthChannel);
+    setChannelVolume(healthChannel, 0);
+    setChannelFrequency(healthChannel,400);
+}
+
+void updatePlayerSound()
+{
+    if(playerIsMoving)
+    {
+        if(!isChannelTransitioning(soundMovingChannel))
+        {
+            startChannelTransition(soundMovingChannel, playerIsRunning ? 43 : 30, playerIsRunning ? 0.6f : 0.4f, 0.1f);
+            setChannelNoiseAmount(soundMovingChannel, playerIsRunning ? 1.0f : 0.5f);
+        }
+    }
+    else
+    {
+        if(!isChannelTransitioning(soundMovingChannel))
+        {
+            startChannelTransition(soundMovingChannel, -1, 0, 0.2f);
+        }
+    }
+
+    float alarmFactor = (PLAYER_MAX_HEALTH - playerHealth) / PLAYER_MAX_HEALTH;
+    if(alarmFactor >= 1.0f)
+    {
+        setChannelFrequency(healthChannel, randomRange(2800, 3000));
+        setChannelVolume(healthChannel, randomRange(0, 100) / 100.0f * 0.3);
+    }
+    else if(alarmFactor > 0)
+    {
+        setChannelVolume(healthChannel, randomRange(90, 100) / 100.0f * alarmFactor * 0.3);
+        
+        if(lastHealth > playerHealth)
+        {
+            setChannelFrequency(healthChannel, randomRange(2500, 2520));
+        }
+        
+    }
+    else
+    {
+        setChannelVolume(healthChannel, 0);
+    }
+    
+    lastHealth = playerHealth;    
+}
 
 void updateCamera()
 {
@@ -138,6 +205,11 @@ void updatePlayer()
     {
         moveAmount *= runMoveMultiplier;
         strafeAmount *= runStrafeMultiplier;
+        playerIsRunning = 1;
+    }
+    else
+    {
+        playerIsRunning = 0;
     }
     
 
@@ -232,6 +304,7 @@ void updatePlayer()
             beep(PLAYER_BEEP_FREQUENCY,PLAYER_BEEP_MILLIS);
         }
         
+        updatePlayerSound();
         
     }
 	
@@ -261,6 +334,8 @@ void updatePlayer()
     
 
     updateCamera();
+    updatePlayerSound();
+    
 }
 
 void initPlayer()
@@ -295,6 +370,10 @@ void initPlayer()
     
     animFrame = 0;
     animTimer = 0;
+    
+    initPlayerSound();
+    
+    playerIsMoving = 0;
 }
 
 int getPlayerDirection()

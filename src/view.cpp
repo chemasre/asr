@@ -117,9 +117,6 @@ void drawSortedSprites()
         float aX = cameraPosX - sortedSprites[i].posX;
         float aY = cameraPosY - sortedSprites[i].posY;
         sortedSpritesDistances[i] = sqrt(aX * aX + aY * aY);
-        
-        // printf("Sprite %d distance %f\n", sortedSprites[i].sprite, sortedSpritesDistances[i]);
-        // int d; scanf("%d", &d);
     }
     
     for(int i = 0; i < sortedSpritesCount; i ++)

@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <config.hpp>
 #include <input.hpp>
 #include <screen.hpp>
+#include <sound.hpp>
 #include <system.hpp>
 
 #define PI 3.1415926536

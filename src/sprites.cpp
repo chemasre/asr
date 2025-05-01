@@ -44,7 +44,7 @@ void initSprites()
             
         }
         
-        printf("Loaded sprite %s\n", filePath);
+        if(showStartupInfo) { printf("Loaded sprite %s\n", filePath); }
         
         fclose(sprFile);
     }

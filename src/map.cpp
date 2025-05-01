@@ -59,7 +59,7 @@ void initMap()
             
         }
         
-        printf("Loaded map %s\n", filePath);
+        if(showStartupInfo) { printf("Loaded map %s\n", filePath); }
         
         fclose(mapFile);
     }

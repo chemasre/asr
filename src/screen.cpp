@@ -66,7 +66,7 @@ void resizeScreen(int windowWidth, int windowHeight)
 	// Windows Terminal doesn't report font size https://github.com/microsoft/terminal/issues/6395
 	if(fontWidth == 0) { fontWidth = fontHeight; }
 
-    printf("font width %d height%d\n", fontWidth, fontHeight);
+    if(showStartupInfo) { printf("Detected font width %d height%d\n", fontWidth, fontHeight); }
     
    
     result = MoveWindow(windowHandle, screenMonitorWidth / 2 - windowWidth / 2, screenMonitorHeight / 2 - windowHeight / 2, windowWidth, windowHeight,  TRUE);
@@ -85,9 +85,9 @@ void resizeScreen(int windowWidth, int windowHeight)
     if(screenWidth >= coord.X - 1) { screenWidth = coord.X - 1; }
     if(screenHeight>= coord.Y - 1) { screenHeight = coord.Y - 1; }
     
-    printf("screen width %d height %d\n", screenWidth, screenHeight);
+    if(showStartupInfo) { printf("Detected screen width %d height %d\n", screenWidth, screenHeight); }
 
-    printf("max screen width %d height %d\n", coord.X, coord.Y);
+    if(showStartupInfo) { printf("Detected max screen width %d height %d\n", coord.X, coord.Y); }
     
     if(screenLine != 0) { free(screenLine); }
     
@@ -123,8 +123,6 @@ void resizeScreen(int windowWidth, int windowHeight)
     result = SetConsoleWindowInfo(consoleHandle, TRUE, &consoleSize);
 	
 	
-    
-    printf("w %d h %d\n", screenWidth, screenHeight);
     ASSERT(result, "Unable to set console size")
     
 
@@ -240,9 +238,6 @@ void fillScreenArea(int areaX, int blankAreaY, int areaWidth, int blankAreaHeigh
 void setClearColor(int color)
 {
     clearColor = color;
-    // printf("R%d G%d B%d\n", GET_COLOR_R(clearColor), GET_COLOR_G(clearColor), GET_COLOR_B(clearColor));
-    
-    // exit(0);
 }
 
 void clearScreen()
