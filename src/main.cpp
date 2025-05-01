@@ -78,9 +78,32 @@
 #define MAP_PARAM_LIGHT_DIRECTIONAL_DIRECTION 1
 #define MAP_PARAM_LIGHT_DIRECTIONAL_INTENSITY 2
 
+
+DWORD WINAPI music(void* data)
+{
+    while(1)
+    {
+        if(playerIsMoving)
+        {
+            beep(80,randomRange(80, 100));
+            beep(100,randomRange(80, 100));
+            
+            // beep(3500, 2000);
+            
+            // for(int i = 0; i < 1000; i ++)
+            // {
+                // beep(randomRange(1, 10000),1);
+            // }
+        }        
+    }
+}
+
 void main()
 {
+    HANDLE musicThread = CreateThread(NULL, 0, music, NULL, 0, NULL);
+    
         
+    initSystem();
     initInput();
     initSprites();
     initTextures();

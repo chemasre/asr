@@ -24,6 +24,8 @@ float playerHealth;
 int animFrame;
 float animTimer;
 
+int playerIsMoving;
+
 void updateCamera()
 {
     
@@ -229,7 +231,7 @@ void updatePlayer()
         {
             beep(PLAYER_BEEP_FREQUENCY,PLAYER_BEEP_MILLIS);
         }
-
+        
         
     }
 	
@@ -239,7 +241,12 @@ void updatePlayer()
 		
 		if(animTimer > 1.0f / PLAYER_ANIM_FPS) { animFrame = (animFrame + 1) % 2; animTimer -= 1.0f / PLAYER_ANIM_FPS; }    
 
+        playerIsMoving = 1;
 	}
+    else
+    {
+        playerIsMoving = 0;
+    }
     
     if(isKeyPressed(KEY_SPACE))
     {

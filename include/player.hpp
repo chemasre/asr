@@ -25,6 +25,7 @@ extern float playerPosX;
 extern float playerPosY;
 extern float playerAngle;
 extern float playerHealth;
+extern int playerIsMoving;
 
 extern int playerControlMode;
 extern float mouseSensitivity;

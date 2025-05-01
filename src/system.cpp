@@ -20,3 +20,13 @@ void beep(int frequency, int millis)
 {
     Beep(frequency, millis);
 }
+
+int randomRange(int min, int max)
+{
+    return min + rand() % (max + 1 - min);
+}
+
+void initSystem()
+{
+    srand(time(NULL));
+}
