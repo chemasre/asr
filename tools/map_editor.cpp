@@ -120,6 +120,11 @@ ItemParamDescriptionPattern itemParamDescriptionPatterns[ITEM_TYPE_COUNT][ITEM_P
     {
 	  { 0, 0, " EMPTY"},
 	  { 0, 1, " SOFAS"},
+	  { 0, 2, " BINS"},
+	  { 0, 3, " POTS"},
+	  { 0, 4, " TREEPOTS"},
+	  { 0, 5, " CANDLELAMP"},
+	  { 0, 6, " ROUNDLAMP"},
 	  
 	  { 1, 0, " DEFAULT"},
 	  { 1, 1, " HORIZONTAL"},	  

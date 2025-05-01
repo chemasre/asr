@@ -41,6 +41,7 @@ struct SortedSprite
 {
     float posX;
     float posY;
+    float posZ;
     int sprite;
     float height;
 };
@@ -91,10 +92,11 @@ void initSortedSprites()
     sortedSpritesCount = 0;
 }
 
-void addSortedSprite(int sprite, float x, float y, float height)
+void addSortedSprite(int sprite, float x, float y, float z, float height)
 {
     sortedSprites[sortedSpritesCount].posX = x;
     sortedSprites[sortedSpritesCount].posY = y;
+    sortedSprites[sortedSpritesCount].posZ = z;
     sortedSprites[sortedSpritesCount].height = height;
     sortedSprites[sortedSpritesCount].sprite = sprite;
     
@@ -105,14 +107,6 @@ void clearSortedSprites()
 {
     sortedSpritesCount = 0;
 }
-
-int enemy1ViewportX;
-int enemy1ViewportY;
-float enemy1PlayerAngle;
-float enemy1PlayerX;
-float enemy1PlayerY;
-float enemy1ViewX;
-float enemy1Hyp;
 
 void drawSortedSprites()
 {
@@ -151,6 +145,7 @@ void drawSortedSprites()
     {
         float spritePosX = sortedSprites[i].posX;
         float spritePosY = sortedSprites[i].posY;
+        float spritePosZ = sortedSprites[i].posZ;
         
         float playerToSpriteX  = spritePosX - cameraPosX;
         float playerToSpriteY  = spritePosY - cameraPosY;
@@ -161,8 +156,8 @@ void drawSortedSprites()
         
         float spritePlayerX = cos(playerToSpriteAngle * DEG2RAD) * sortedSpritesDistances[i];
         float spritePlayerY = sin(playerToSpriteAngle * DEG2RAD) * sortedSpritesDistances[i];
-        float spriteLowPlayerZ = -VIEW_WORLD_Z;
-        float spriteHighPlayerZ = -VIEW_WORLD_Z + sortedSprites[i].height;
+        float spriteLowPlayerZ = -VIEW_WORLD_Z + spritePosZ;
+        float spriteHighPlayerZ = -VIEW_WORLD_Z + spritePosZ + sortedSprites[i].height;
 
         float viewHeight = getViewHeight();
         float viewWidth = viewHeight * getViewAspect();
@@ -381,13 +376,17 @@ void drawColumn(int viewportX, float normalizedDistance, float direction, int te
     float viewHeight = getViewHeight();
     float viewScale = viewHeight / viewportHeight;
     
+    float viewX = viewScale * (viewportX - viewportWidth / 2.0f) / getViewAspect();
+    float angleX = atan2(viewX, VIEW_NEAR_DISTANCE);
+    
+    
     // int h = viewportHeight * (1 - normalizedDistance) * (1 - normalizedDistance);
     
     for(int viewportY = 0; viewportY < viewportHeight; viewportY ++)
     {
         float viewY = viewScale * -(viewportY - viewportHeight / 2.0f);
-        float angle = atan2(viewY, VIEW_NEAR_DISTANCE);
-        float viewWorldZ = VIEW_WORLD_Z + distance * sin(angle);
+        float angleY = atan2(viewY, VIEW_NEAR_DISTANCE);
+        float viewWorldZ = VIEW_WORLD_Z + distance * sin(angleY);
         
         if(viewWorldZ <= MAP_CELL_WORLD_SIZE && viewWorldZ >= 0)
         {
@@ -426,7 +425,7 @@ void drawColumn(int viewportX, float normalizedDistance, float direction, int te
             // if(viewportY % 5 == 0 && viewportX % 10 == 0)
             // {
                 // drawFloat(viewportX, viewportY, "VY", viewY);
-                // drawFloat(viewportX, viewportY + 1, "A", angle * RAD2DEG);
+                // drawFloat(viewportX, viewportY + 1, "A", angleY * RAD2DEG);
                 // drawFloat(viewportX, viewportY + 2, "WZ", viewWorldZ);
             // }
             
@@ -443,6 +442,27 @@ void drawColumn(int viewportX, float normalizedDistance, float direction, int te
         }
         else if(viewWorldZ < 0)  
         {
+            float groundDistance = fabs(- VIEW_WORLD_Z / sin(angleY));
+            float groundDistanceXY = fabs(cos(angleY) * groundDistance);
+            float groundPosX = cameraPosX + cos(playerAngle * DEG2RAD + angleX) * groundDistanceXY;
+            float groundPosY = cameraPosY + sin(playerAngle * DEG2RAD + angleX) * groundDistanceXY;
+            
+            float tU = groundPosX / MAP_CELL_WORLD_SIZE;
+            float groundU = tU - (int)tU;
+
+            float tV = groundPosY / MAP_CELL_WORLD_SIZE;
+            float groundV = tV - (int)tV;
+            
+            TextureColor boundaryDefault;
+            boundaryDefault.r = 0.3f;
+            boundaryDefault.g = 0.3f;
+            boundaryDefault.b = 0.3f;
+            
+            TextureColor sample = getTextureSample(3, groundU, groundV, boundaryDefault);
+            //int groundColor = MAKE_COLOR((int)(groundU * 255), (int)(groundV * 255), 0);
+            int groundColor = MAKE_COLOR((int)(sample.r * 255), (int)(sample.g * 255), (int)(sample.b * 255));
+                       
+            
             // ground
             
             float groundDistanceFactor = 1 - (viewportY - (viewportHeight/2.0f)) / (viewportHeight/2.0f);
@@ -451,17 +471,54 @@ void drawColumn(int viewportX, float normalizedDistance, float direction, int te
         
             char g = groundSteps[groundStep];
             
-            setScreenCell(viewportX, viewportY, GROUND_COLOR, g);
+            // float sampleLight = (sample.r + sample.g + sample.b) / 3.0f;
+                
+            // int lightStep = (int)((clamp01((1 - ambientLightIntensity) * (1 - sampleLight)) * GROUND_STEPS));
+            // if(lightStep >= GROUND_STEPS) { lightStep = GROUND_STEPS - 1; }
+            // else if(lightStep < 0) { lightStep = 0; }
+            
+            // g = groundSteps[lightStep];            
+            
+            setScreenCell(viewportX, viewportY, groundColor, g);
+            
+             // if(viewportX % 14 == 0)
+            // {
+                // char text[100];
+                // sprintf(text, "NGP %.2f %.2f", groundPosX / MAP_CELL_WORLD_SIZE, groundPosY / MAP_CELL_WORLD_SIZE);
+                // drawString(MAKE_COLOR(255,0,0), text, viewportX, viewportY);
+            // }
         }
         else
         {
+            float skyDistance = fabs((- VIEW_WORLD_Z + MAP_CELL_WORLD_SIZE) / sin(angleY));
+            float skyDistanceXY = fabs(cos(angleY) * skyDistance);
+            float skyPosX = cameraPosX + cos(playerAngle * DEG2RAD + angleX) * skyDistanceXY;
+            float skyPosY = cameraPosY + sin(playerAngle * DEG2RAD + angleX) * skyDistanceXY;
+            
+            float tU = skyPosX / MAP_CELL_WORLD_SIZE;
+            float skyU = tU - (int)tU;
+
+            float tV = skyPosY / MAP_CELL_WORLD_SIZE;
+            float skyV = tV - (int)tV;
+            
+            TextureColor boundaryDefault;
+            boundaryDefault.r = 0.3f;
+            boundaryDefault.g = 0.3f;
+            boundaryDefault.b = 0.3f;
+            
+            TextureColor sample = getTextureSample(4, skyU, skyV, boundaryDefault);
+            //int groundColor = MAKE_COLOR((int)(groundU * 255), (int)(groundV * 255), 0);
+            int skyColor = MAKE_COLOR((int)(sample.r * 255), (int)(sample.g * 255), (int)(sample.b * 255));
+
+
             // sky
 
             float skyHeightFactor = 1 - ((viewportHeight/2.0f) - viewportY)  / (viewportHeight/2.0f);
             int skyStep = (int)(skyHeightFactor * SKY_STEPS);            
             if(skyStep >= SKY_STEPS) { skyStep = SKY_STEPS - 1; }
-            char s = skySteps[skyStep];            
-            setScreenCell(viewportX, viewportY, SKY_COLOR, s);
+            char s = skySteps[skyStep];  
+            
+            setScreenCell(viewportX, viewportY, skyColor, s);
         }
     }
 }

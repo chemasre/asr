@@ -13,9 +13,9 @@ float playerAngle;
 int playerControlMode;
 float mouseSensitivity;
 
-float rotateSpeed = 200;
-float moveSpeed = C2W(2.5f);
-float strafeSpeed = C2W(2.5f);
+float rotateSpeed = 120;
+float moveSpeed = C2W(1.5f);
+float strafeSpeed = C2W(1.5f);
 float runMoveMultiplier = 2.0f;
 float runStrafeMultiplier = 2.0f;
 
@@ -48,7 +48,7 @@ void updateCamera()
 
 void drawPlayer()
 {
-    addSortedSprite(animFrame, playerPosX, playerPosY, PLAYER_HEIGHT);
+    addSortedSprite(animFrame, playerPosX, playerPosY, 0, PLAYER_HEIGHT);
 }
 
 void updatePlayer()

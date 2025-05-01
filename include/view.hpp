@@ -32,7 +32,7 @@ void updateView();
 void drawView();
 
 void setViewportCrop(int right, int bottom);
-void addSortedSprite(int sprite, float x, float y, float height);
+void addSortedSprite(int sprite, float x, float y, float z, float height);
 
 // private
 
