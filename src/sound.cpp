@@ -19,7 +19,7 @@ struct Channel
 {
     int owned;
     
-    int enabled;
+    int muted;
     float phase;
     float volume;
     float frequency;
@@ -60,13 +60,13 @@ static int soundCallback( const void *input, void *output, unsigned long framesP
 
     soundCallbackTimer += soundFrameDeltatime;
     
-    int enabledChannels = 0;
+    float totalVolume = 0;
     
     for(int i = 0; i < MAX_CHANNELS; i++)
     {
-        if(channels[i].owned && channels[i].enabled)
+        if(channels[i].owned && !channels[i].muted)
         {
-            enabledChannels ++;
+            totalVolume += channels[i].volume;
         }
 
     }
@@ -78,7 +78,7 @@ static int soundCallback( const void *input, void *output, unsigned long framesP
         
         for(int j = 0; j < MAX_CHANNELS; j ++)
         {
-            if(channels[j].owned && channels[j].enabled)
+            if(channels[j].owned && !channels[j].muted)
             {
                 if(channels[j].transition)
                 {
@@ -122,8 +122,11 @@ static int soundCallback( const void *input, void *output, unsigned long framesP
                     
                 }                
                 
-                leftPhase += channelPhaseLeft * (channels[j].volume / enabledChannels);
-                rightPhase += channelPhaseRight * (channels[j].volume / enabledChannels);
+				float volumeScale = 1;
+				if(totalVolume > 1.0f) { volumeScale = 1 / totalVolume; }
+                
+				leftPhase += channelPhaseLeft * channels[j].volume * volumeScale;
+                rightPhase += channelPhaseRight * channels[j].volume * volumeScale;
             }
             
         }
@@ -177,15 +180,15 @@ void releaseChannel(int index)
     channels[index].owned = 0;
 }
 
-void enableChannel(int index)
+void muteChannel(int index)
 {
-    channels[index].enabled = 1;
+    channels[index].muted = 1;
     
 }
 
-void disableChannel(int index)
+void unmuteChannel(int index)
 {
-    channels[index].enabled = 1;
+    channels[index].muted = 0;
 }
 
 void setChannelFrequency(int index, float frequency)
@@ -259,7 +262,7 @@ void initSound()
     for(int i = 0; i < MAX_CHANNELS; i++)
     {        
         channels[i].owned = 0;
-        channels[i].enabled = 1;
+        channels[i].muted = 0;
         channels[i].phase = 0;
         channels[i].volume = 0;
         channels[i].frequency = 0; 

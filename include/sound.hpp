@@ -6,8 +6,8 @@
 
 #define MAX_CHANNELS 8
 
-void enableChannel(int index);
-void disableChannel(int index);
+void muteChannel(int index);
+void unmuteChannel(int index);
 void setChannelFrequency(int index, float frequency);
 void setChannelVolume(int index, float volume);
 void setVolume(float volume);

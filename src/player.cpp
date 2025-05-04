@@ -37,16 +37,14 @@ void initPlayerSound()
 {
     soundMovingChannel = reserveChannel();
     
-    enableChannel(soundMovingChannel);
     setChannelVolume(soundMovingChannel, 1);
     startChannelTransition(soundMovingChannel, 30, 0, 0.1f);
     enableChannelNoise(soundMovingChannel);
-    setChannelNoiseFrequency(soundMovingChannel, 20);
+    setChannelNoiseFrequency(soundMovingChannel, 43);
     setChannelNoiseAmount(soundMovingChannel, 0.5f);
     
     healthChannel = reserveChannel();
     
-    enableChannel(healthChannel);
     setChannelVolume(healthChannel, 0);
     setChannelFrequency(healthChannel,400);
 }
@@ -57,7 +55,7 @@ void updatePlayerSound()
     {
         if(!isChannelTransitioning(soundMovingChannel))
         {
-            startChannelTransition(soundMovingChannel, playerIsRunning ? 43 : 30, playerIsRunning ? 0.6f : 0.4f, 0.1f);
+            startChannelTransition(soundMovingChannel, playerIsRunning ? 63 : 43, playerIsRunning ? 0.4f : 0.3f, 0.1f);
             setChannelNoiseAmount(soundMovingChannel, playerIsRunning ? 1.0f : 0.5f);
         }
     }
