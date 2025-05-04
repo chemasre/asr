@@ -31,19 +31,18 @@ int playerIsRunning;
 float lastHealth = 0;
 
 int soundMovingChannel;
+int soundMovingNoiseChannel;
 int healthChannel;
 
 void initPlayerSound()
 {
-    soundMovingChannel = reserveChannel();
+    soundMovingChannel = reserveChannel(GENERATOR_TYPE_TONE);
+    soundMovingNoiseChannel = reserveChannel(GENERATOR_TYPE_NOISE);
     
-    setChannelVolume(soundMovingChannel, 1);
-    startChannelTransition(soundMovingChannel, 30, 0, 0.1f);
-    enableChannelNoise(soundMovingChannel);
-    setChannelNoiseFrequency(soundMovingChannel, 43);
-    setChannelNoiseAmount(soundMovingChannel, 0.5f);
-    
-    healthChannel = reserveChannel();
+    setChannelVolume(soundMovingChannel, 0);
+    setChannelVolume(soundMovingNoiseChannel, 0);
+  
+    healthChannel = reserveChannel(GENERATOR_TYPE_TONE);
     
     setChannelVolume(healthChannel, 0);
     setChannelFrequency(healthChannel,400);
@@ -56,7 +55,7 @@ void updatePlayerSound()
         if(!isChannelTransitioning(soundMovingChannel))
         {
             startChannelTransition(soundMovingChannel, playerIsRunning ? 63 : 43, playerIsRunning ? 0.4f : 0.3f, 0.1f);
-            setChannelNoiseAmount(soundMovingChannel, playerIsRunning ? 1.0f : 0.5f);
+            startChannelTransition(soundMovingNoiseChannel, playerIsRunning ? 63 : 43, playerIsRunning ? 0.4f : 0.3f, 0.1f);
         }
     }
     else
@@ -64,6 +63,7 @@ void updatePlayerSound()
         if(!isChannelTransitioning(soundMovingChannel))
         {
             startChannelTransition(soundMovingChannel, -1, 0, 0.2f);
+            startChannelTransition(soundMovingNoiseChannel, -1, 0, 0.2f);
         }
     }
 

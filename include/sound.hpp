@@ -6,6 +6,10 @@
 
 #define MAX_CHANNELS 8
 
+#define GENERATOR_TYPE_TONE 0
+#define GENERATOR_TYPE_NOISE 1
+
+
 void muteChannel(int index);
 void unmuteChannel(int index);
 void setChannelFrequency(int index, float frequency);
@@ -15,12 +19,7 @@ void startChannelTransition(int index, float frequency, float volume, float time
 int isChannelTransitioning(int index);
 void stopChannelTransition(int index);
 
-void enableChannelNoise(int index);
-void disableChannelNoise(int index);
-void setChannelNoiseFrequency(int index, float frequency);
-void setChannelNoiseAmount(int index, float amount);
-
-int reserveChannel();
+int reserveChannel(int type);
 void releaseChannel(int index);
 
 void initSound();

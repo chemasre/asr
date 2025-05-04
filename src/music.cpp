@@ -19,24 +19,28 @@ int musicState;
 float musicSilenceWait;
 
 int musicChannelHigh;
+int musicChannelNoiseHigh;
+
 int musicChannelLow;
+int musicChannelNoiseLow;
 
 void initMusic()
 {
-    musicChannelHigh = reserveChannel();
-    musicChannelLow = reserveChannel();
+    musicChannelHigh = reserveChannel(GENERATOR_TYPE_TONE);
+    musicChannelNoiseHigh = reserveChannel(GENERATOR_TYPE_NOISE);
+    musicChannelLow = reserveChannel(GENERATOR_TYPE_TONE);
+    musicChannelNoiseLow = reserveChannel(GENERATOR_TYPE_NOISE);
+    
     musicVolume = 0.1f;
     musicTimer = 0;
 
-    enableChannelNoise(musicChannelLow);
-    enableChannelNoise(musicChannelHigh);
 
     setChannelFrequency(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
     setChannelFrequency(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
-    setChannelNoiseFrequency(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
-    setChannelNoiseFrequency(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
-    setChannelNoiseAmount(musicChannelLow, randomRange(0, 100) / 100.0f);
-    setChannelNoiseAmount(musicChannelHigh, randomRange(0, 100) / 100.0f);
+    setChannelFrequency(musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
+    setChannelFrequency(musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
+    setChannelVolume(musicChannelNoiseLow, 0);
+    setChannelVolume(musicChannelNoiseHigh, 0);
     setChannelVolume(musicChannelHigh, 0);
     setChannelVolume(musicChannelLow, 0);
     
@@ -59,16 +63,19 @@ void updateMusic()
         {
             setChannelFrequency(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
             setChannelFrequency(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
-            setChannelNoiseFrequency(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
-            setChannelNoiseFrequency(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
-            setChannelNoiseAmount(musicChannelLow, randomRange(0, 100) / 100.0f);
-            setChannelNoiseAmount(musicChannelHigh, randomRange(0, 100) / 100.0f);
+            setChannelFrequency(musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX));
+            setChannelFrequency(musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX));
+            setChannelVolume(musicChannelNoiseLow, 0);
+            setChannelVolume(musicChannelNoiseHigh, 0);
             setChannelVolume(musicChannelHigh, 0);
-            setChannelVolume(musicChannelLow, 0);
+            setChannelVolume(musicChannelLow, 0);            
+            
             
             float duration = randomRange(MUSIC_IN_MIN, MUSIC_IN_MAX);
             startChannelTransition(musicChannelHigh, -1, musicVolume, duration);
             startChannelTransition(musicChannelLow, -1, musicVolume, duration);
+            startChannelTransition(musicChannelNoiseHigh, -1, musicVolume, duration);
+            startChannelTransition(musicChannelNoiseLow, -1, musicVolume, duration);            
             musicState = 0;
         }
     }
@@ -80,6 +87,8 @@ void updateMusic()
             float duration = randomRange(MUSIC_OUT_MIN, MUSIC_OUT_MAX);
             startChannelTransition(musicChannelHigh, -1, 0, duration);
             startChannelTransition(musicChannelLow, -1, 0, duration);
+            startChannelTransition(musicChannelNoiseHigh, -1, 0, duration);
+            startChannelTransition(musicChannelNoiseLow, -1, 0, duration);
             musicState = 1;
         }
         else if(musicState == 1)
@@ -96,4 +105,6 @@ void finishMusic()
 {
     releaseChannel(musicChannelHigh);
     releaseChannel(musicChannelLow);
+    releaseChannel(musicChannelNoiseHigh);
+    releaseChannel(musicChannelNoiseLow);
 }

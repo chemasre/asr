@@ -3,6 +3,7 @@
 #include <portaudio.h>
 
 #define SAMPLE_RATE   (44100)
+#define SAMPLE_DELTA_TIME (1.0f / SAMPLE_RATE)
 #define SAMPLES_PER_CALLBACK (64)
 
 PaStream *stream;
@@ -11,8 +12,8 @@ PaError soundError;
 
 struct SoundData
 {
-    float leftPhase;
-    float rightPhase;
+    float leftOutput;
+    float rightOutput;
 };
 
 struct Channel
@@ -23,129 +24,147 @@ struct Channel
     float phase;
     float volume;
     float frequency;
-    
-    int transition;
+    float output;   
+
+};
+
+struct ChannelTransition
+{
+    int active;
     float startFrequency;
     float startVolume;
     float targetFrequency;
     float targetVolume;
-    float transitionTotalTime;
-    float transitionTime;
+    float totalTime;
+    float time;
+};
+
+struct ChannelGenerator
+{
+    int type;    
     
-    int noise;    
-    float noiseAmount;
-    float noiseFrequency;
-    float noiseTimer;
+    // TONE
+    
+    float toneAngle;
+
+    // NOISE
+    
+    float noiseChangePhaseTimer;
     float noisePhase;
-    float noiseTargetLevel;
+    float noiseTargetPhase;
 };
 
 float masterVolume;
 
 Channel channels[MAX_CHANNELS];
+ChannelGenerator channelGenerators[MAX_CHANNELS];
+ChannelTransition channelTransitions[MAX_CHANNELS];
 
-float soundFrameDeltatime;
 static SoundData soundCallbackData;
 float soundCallbackTimer;
 
 
 
 
-static int soundCallback( const void *input, void *output, unsigned long framesPerBuffer,
+static int soundCallback( const void *input, void *output, unsigned long samplesPerCallback,
                           const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
                            void *callbackData )
 {
     SoundData *soundCallbackData = (SoundData*)callbackData;
     float *outputData = (float*)output;
-
-    soundCallbackTimer += soundFrameDeltatime;
     
     float totalVolume = 0;
+    float meanVolume = 0;
+    int activeChannelsCount = 0;
     
     for(int i = 0; i < MAX_CHANNELS; i++)
     {
         if(channels[i].owned && !channels[i].muted)
         {
+            activeChannelsCount ++;
             totalVolume += channels[i].volume;
         }
 
     }
+    
+    if(activeChannelsCount > 0) { meanVolume = totalVolume / activeChannelsCount; }
 
-    for(int i = 0; i < framesPerBuffer; i++ )
+    for(int s = 0; s < samplesPerCallback; s++ )
     {
-        float leftPhase = 0;
-        float rightPhase = 0;
-        
-        for(int j = 0; j < MAX_CHANNELS; j ++)
+        for(int c = 0; c < MAX_CHANNELS; c ++)
         {
-            if(channels[j].owned && !channels[j].muted)
+            if(channels[c].owned && !channels[c].muted)
             {
-                if(channels[j].transition)
+                if(channelTransitions[c].active)
                 {
-                    channels[j].transitionTime += soundFrameDeltatime;
-                    if(channels[j].transitionTime >= channels[j].transitionTotalTime)
+                    channelTransitions[c].time += SAMPLE_DELTA_TIME;
+                    if(channelTransitions[c].time >= channelTransitions[c].totalTime)
                     {
-                        channels[j].transitionTime = channels[j].transitionTotalTime;
-                        channels[j].transition = 0;
+                        channelTransitions[c].time = channelTransitions[c].totalTime;
+                        channelTransitions[c].active = 0;
                     }
 
-                    float f = channels[j].transitionTime / channels[j].transitionTotalTime;
+                    float f = channelTransitions[c].time / channelTransitions[c].totalTime;
                     
                     
-                    float difference = channels[j].targetFrequency - channels[j].startFrequency;
-                    channels[j].frequency = channels[j].startFrequency + difference * f;
+                    float difference = channelTransitions[c].targetFrequency - channelTransitions[c].startFrequency;
+                    channels[c].frequency = channelTransitions[c].startFrequency + difference * f;
 
-                    difference = channels[j].targetVolume - channels[j].startVolume;
-                    channels[j].volume = channels[j].startVolume + difference * f;
+                    difference = channelTransitions[c].targetVolume - channelTransitions[c].startVolume;
+                    channels[c].volume = channelTransitions[c].startVolume + difference * f;
                 }
-
-                channels[j].phase += channels[j].frequency * (360.0f) * 1.0f / SAMPLE_RATE; 
-                if(channels[j].phase > 360) { channels[j].phase = channels[j].phase - 360.0f;}
                 
-                float channelPhaseLeft = sin(channels[j].phase * DEG2RAD);
-                float channelPhaseRight = cos(channels[j].phase * DEG2RAD);
-                
-                if(channels[j].noise)
-                {                    
-                    float noisePeriod = 1.0f / channels[j].noiseFrequency;
-                    channels[j].noisePhase +=  (channels[j].noiseTargetLevel - channels[j].noisePhase) * channels[j].noiseTimer / noisePeriod;
-                    channels[j].noiseTimer += soundFrameDeltatime;
-                    if(channels[j].noiseTimer > noisePeriod)
+                if(channelGenerators[c].type == GENERATOR_TYPE_TONE)
+                {
+                    channelGenerators[c].toneAngle += channels[c].frequency * (360.0f) * 1.0f / SAMPLE_RATE; 
+                    if(channelGenerators[c].toneAngle > 360) { channelGenerators[c].toneAngle = channelGenerators[c].toneAngle - 360.0f;}
+                    channels[c].output = sin(channelGenerators[c].toneAngle * DEG2RAD);
+                }
+                else
+                {
+                    float noisePeriod = 1.0f / channels[c].frequency;
+                    channelGenerators[c].noisePhase +=  (channelGenerators[c].noiseTargetPhase - channelGenerators[c].noisePhase) * channelGenerators[c].noiseChangePhaseTimer / noisePeriod;
+                    channelGenerators[c].noiseChangePhaseTimer += SAMPLE_DELTA_TIME;
+                    if(channelGenerators[c].noiseChangePhaseTimer > noisePeriod)
                     {
-                        channels[j].noiseTargetLevel = randomRange(-1000, 1000) / 1000.0f * channels[j].noiseAmount;
-                        channels[j].noiseTimer -= noisePeriod;
+                        channelGenerators[c].noiseTargetPhase = randomRange(-1000, 1000) / 1000.0f;
+                        channelGenerators[c].noiseChangePhaseTimer -= noisePeriod;
                     }
-
                     
-                    channelPhaseLeft += channelPhaseLeft + channels[j].noisePhase;
-                    channelPhaseRight += channelPhaseRight + channels[j].noisePhase;
-                    
-                }                
+                    channels[c].output = channelGenerators[c].noisePhase;
+                }
                 
-				float volumeScale = 1;
-				if(totalVolume > 1.0f) { volumeScale = 1 / totalVolume; }
                 
-				leftPhase += channelPhaseLeft * channels[j].volume * volumeScale;
-                rightPhase += channelPhaseRight * channels[j].volume * volumeScale;
             }
             
         }
         
-        leftPhase *= masterVolume;
-        rightPhase *= masterVolume;
+        float leftOutput = 0;
+        float rightOutput = 0;
+
+        if(totalVolume > 0)
+        {
+            for(int j = 0; j < MAX_CHANNELS; j++)
+            {
+                leftOutput += channels[j].output * channels[j].volume / totalVolume * meanVolume;
+                rightOutput += channels[j].output * channels[j].volume / totalVolume * meanVolume;
+            }
+        }
         
-        leftPhase = max(-1.0f, min(1.0f, leftPhase));
-        rightPhase = max(-1.0f, min(1.0f, rightPhase));
+        leftOutput *= masterVolume;
+        rightOutput *= masterVolume;
         
-        soundCallbackData->leftPhase = leftPhase;
-        soundCallbackData->rightPhase = rightPhase;        
+        leftOutput = max(-1.0f, min(1.0f, leftOutput));
+        rightOutput = max(-1.0f, min(1.0f, rightOutput));
         
-        *outputData = soundCallbackData->leftPhase;
+        soundCallbackData->leftOutput = leftOutput;
+        soundCallbackData->rightOutput = rightOutput;        
+        
+        *outputData = soundCallbackData->leftOutput;
         outputData ++;
-        *outputData = soundCallbackData->rightPhase;
+        *outputData = soundCallbackData->rightOutput;
         outputData ++;
-        
-        soundCallbackTimer += 1.0f / SAMPLE_RATE;
+
     }
     
     
@@ -159,14 +178,21 @@ void updateSound()
 
 }
 
-int reserveChannel()
+int reserveChannel(int generatorType)
 {
     int found = -1;
     int index = 0;
     
     while(found < 0 && index < MAX_CHANNELS)
     {
-        if(channels[index].owned == 0) { channels[index].owned = 1; found = index; }
+        if(channels[index].owned == 0)
+        {
+            channels[index].owned = 1;
+            channelGenerators[index].type = generatorType;
+            if(generatorType == GENERATOR_TYPE_TONE) { channelGenerators[index].toneAngle = 0; }
+            channelTransitions[index].active = 0;    
+            found = index;
+        }
         else { index ++; }
         
     }
@@ -208,75 +234,54 @@ void setVolume(float volume)
 
 void startChannelTransition(int index, float frequency, float volume, float time)
 {
-    channels[index].transition = 1;
-    channels[index].startFrequency = channels[index].frequency;
-    channels[index].startVolume = channels[index].volume;
-    if(frequency >= 0) { channels[index].targetFrequency = frequency; }
-    else { channels[index].targetFrequency = channels[index].frequency; }
-    if(volume >= 0) { channels[index].targetVolume = volume; }
-    else { channels[index].targetVolume = channels[index].volume; }
+    channelTransitions[index].active = 1;
+    channelTransitions[index].startFrequency = channels[index].frequency;
+    channelTransitions[index].startVolume = channels[index].volume;
+    if(frequency >= 0) { channelTransitions[index].targetFrequency = frequency; }
+    else { channelTransitions[index].targetFrequency = channels[index].frequency; }
+    if(volume >= 0) { channelTransitions[index].targetVolume = volume; }
+    else { channelTransitions[index].targetVolume = channels[index].volume; }
         
-    channels[index].transitionTotalTime = time;
-    channels[index].transitionTime = 0;
+    channelTransitions[index].totalTime = time;
+    channelTransitions[index].time = 0;
     
 }
 
 void stopChannelTransition(int index)
 {
-    channels[index].transition = 0;
+    channelTransitions[index].active = 0;
 }
 
 int isChannelTransitioning(int index)
 {
-    return channels[index].transition;
-}
-
-void enableChannelNoise(int index)
-{
-    channels[index].noise = 1;
-    channels[index].noiseTimer = 0;
-}
-
-void disableChannelNoise(int index)
-{
-    channels[index].noise = 0;
-}
-
-void setChannelNoiseFrequency(int index, float frequency)
-{
-    channels[index].noiseFrequency = frequency;
-}
-
-void setChannelNoiseAmount(int index, float amount)
-{
-    channels[index].noiseAmount = amount;
+    return channelTransitions[index].active;
 }
 
 void initSound()
 {
-    soundFrameDeltatime = 1.0f / SAMPLE_RATE;
-
-    soundCallbackData.leftPhase = 0.0f;
-    soundCallbackData.rightPhase = 0.0f;
+    soundCallbackData.leftOutput = 0.0f;
+    soundCallbackData.rightOutput = 0.0f;
 
     for(int i = 0; i < MAX_CHANNELS; i++)
     {        
         channels[i].owned = 0;
         channels[i].muted = 0;
-        channels[i].phase = 0;
+
         channels[i].volume = 0;
-        channels[i].frequency = 0; 
-        channels[i].transition = 0;
-        channels[i].noise = 0;
-        channels[i].noiseAmount = 0.5f;
-        channels[i].noiseFrequency = 1000.0f;
-        channels[i].noisePhase = 0;
-        
+        channels[i].frequency = 0;         
+
+        channels[i].output = 0;
+  
+        channelGenerators[i].type = GENERATOR_TYPE_TONE;
+        channelGenerators[i].toneAngle = 0;
+        channelGenerators[i].noisePhase = 0;
+
+        channelTransitions[i].active = 0;    
     }
     
-    masterVolume = 1;
     
-    soundCallbackTimer = 0;
+    
+    masterVolume = 1;
     
     soundError = Pa_Initialize();   
     
