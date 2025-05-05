@@ -6,6 +6,11 @@
 #define SAMPLE_DELTA_TIME (1.0f / SAMPLE_RATE)
 #define SAMPLES_PER_CALLBACK (64)
 
+#define SOUND_STATE_STOPPED 0
+#define SOUND_STATE_PLAYING 1
+#define SOUND_STATE_STOPPING 2
+
+
 PaStream *stream;
 PaError soundError;
 
@@ -28,15 +33,28 @@ struct Channel
 
 };
 
-struct ChannelTransition
+struct ChannelSound
 {
-    int active;
-    float startFrequency;
-    float startVolume;
-    float targetFrequency;
-    float targetVolume;
-    float totalTime;
+    int state;
+    float frequency;
+    float volume;
     float time;
+    float attackDuration;
+    float sustainDuration;
+    float fadeDuration;
+    int loop;
+
+    int gotoFrequency;
+    float gotoFrequencyTimer;
+    float gotoFrequencyStart;
+    float gotoFrequencyEnd;
+    float gotoFrequencyDuration;
+    
+    int gotoVolume;
+    float gotoVolumeTimer;
+    float gotoVolumeStart;
+    float gotoVolumeEnd;
+    float gotoVolumeDuration;
 };
 
 struct ChannelGenerator
@@ -58,13 +76,10 @@ float masterVolume;
 
 Channel channels[MAX_CHANNELS];
 ChannelGenerator channelGenerators[MAX_CHANNELS];
-ChannelTransition channelTransitions[MAX_CHANNELS];
+ChannelSound channelSounds[MAX_CHANNELS];
 
 static SoundData soundCallbackData;
 float soundCallbackTimer;
-
-
-
 
 static int soundCallback( const void *input, void *output, unsigned long samplesPerCallback,
                           const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
@@ -79,7 +94,7 @@ static int soundCallback( const void *input, void *output, unsigned long samples
     
     for(int i = 0; i < MAX_CHANNELS; i++)
     {
-        if(channels[i].owned && !channels[i].muted)
+        if(channels[i].owned && !channels[i].muted && (channelSounds[i].state == SOUND_STATE_PLAYING || channelSounds[i].state == SOUND_STATE_STOPPING))
         {
             activeChannelsCount ++;
             totalVolume += channels[i].volume;
@@ -88,41 +103,138 @@ static int soundCallback( const void *input, void *output, unsigned long samples
     }
     
     if(activeChannelsCount > 0) { meanVolume = totalVolume / activeChannelsCount; }
-
+    
     for(int s = 0; s < samplesPerCallback; s++ )
     {
+        for(int c = 0; c < MAX_CHANNELS; c++)
+        {
+            if(channelSounds[c].state == SOUND_STATE_PLAYING)
+            {
+                if(channelSounds[c].gotoFrequency)
+                {
+                    channelSounds[c].gotoFrequencyTimer += SAMPLE_DELTA_TIME;
+                    
+                    if(channelSounds[c].gotoFrequencyTimer >= channelSounds[c].gotoFrequencyDuration)
+                    {
+                        channelSounds[c].frequency = channelSounds[c].gotoFrequencyEnd;
+                        channelSounds[c].gotoFrequency = 0;
+                    }
+                    else
+                    {
+                        channelSounds[c].frequency = channelSounds[c].gotoFrequencyStart + (channelSounds[c].gotoFrequencyEnd - channelSounds[c].gotoFrequencyStart) * channelSounds[c].gotoFrequencyTimer / channelSounds[c].gotoFrequencyDuration;
+                    }
+                }
+                
+                if(channelSounds[c].gotoVolume)
+                {
+                    channelSounds[c].gotoVolumeTimer += SAMPLE_DELTA_TIME;
+                    
+                    if(channelSounds[c].gotoVolumeTimer >= channelSounds[c].gotoVolumeDuration)
+                    {
+                        channelSounds[c].volume = channelSounds[c].gotoVolumeEnd;
+                        channelSounds[c].gotoVolume = 0;                        
+                    }
+                    else
+                    {
+                        channelSounds[c].frequency = channelSounds[c].gotoVolumeStart + (channelSounds[c].gotoVolumeEnd - channelSounds[c].gotoVolumeStart) * channelSounds[c].gotoVolumeTimer / channelSounds[c].gotoVolumeDuration;
+                    }
+                    
+                }                
+                
+                
+                channelSounds[c].time += SAMPLE_DELTA_TIME;
+                
+                if(channelSounds[c].time <= channelSounds[c].attackDuration)
+                {
+                    channels[c].frequency = channelSounds[c].frequency;
+                    
+                    if(channelSounds[c].attackDuration > 0)
+                    {
+                        channels[c].volume = channelSounds[c].time / channelSounds[c].attackDuration * channelSounds[c].volume;
+                    }
+                    else
+                    {
+                        channels[c].volume = 1;
+                    }
+                }
+                else if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration)
+                {
+                    channels[c].frequency = channelSounds[c].frequency;
+                    channels[c].volume = channelSounds[c].volume;
+                }
+                else if(channelSounds[c].loop)
+                {
+                    channelSounds[c].time = channelSounds[c].attackDuration;
+                    channels[c].frequency = channelSounds[c].frequency;
+                    channels[c].volume = channelSounds[c].volume;
+                }                
+                else if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration + channelSounds[c].fadeDuration)
+                {
+                    float t = channelSounds[c].time - (channelSounds[c].attackDuration + channelSounds[c].sustainDuration);
+                    channels[c].frequency = channelSounds[c].frequency;
+                    
+                    if(channelSounds[c].fadeDuration > 0)
+                    {
+                        channels[c].volume = channelSounds[c].volume * (1 - t / channelSounds[c].fadeDuration);
+                    }
+                    else
+                    {
+                        channels[c].volume = 0;
+                    }
+                }
+                else
+                {
+                    channels[c].frequency = channelSounds[c].frequency;
+                    channels[c].volume = 0;
+                    channelSounds[c].state = SOUND_STATE_STOPPED;
+                }
+            }
+            else if(channelSounds[c].state == SOUND_STATE_STOPPING)
+            {
+                channelSounds[c].time += SAMPLE_DELTA_TIME;
+
+                if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration + channelSounds[c].fadeDuration)
+                {
+                    float t = channelSounds[c].time - (channelSounds[c].attackDuration + channelSounds[c].sustainDuration);
+                    channels[c].frequency = channelSounds[c].frequency;
+                    
+                    if(channelSounds[c].fadeDuration > 0)
+                    {
+                        channels[c].volume = channelSounds[c].volume * (1 - t / channelSounds[c].fadeDuration);
+                    }
+                    else
+                    {
+                        channels[c].volume = 0;
+                    }                
+                }
+                else
+                {
+                    channels[c].frequency = channelSounds[c].frequency;
+                    channels[c].volume = 0;
+                    channelSounds[c].state = SOUND_STATE_STOPPED;
+                }                
+            }
+            
+        }
+
         for(int c = 0; c < MAX_CHANNELS; c ++)
         {
-            if(channels[c].owned && !channels[c].muted)
+            if(channels[c].owned && !channels[c].muted && (channelSounds[c].state == SOUND_STATE_PLAYING || channelSounds[c].state == SOUND_STATE_STOPPING))
             {
-                if(channelTransitions[c].active)
-                {
-                    channelTransitions[c].time += SAMPLE_DELTA_TIME;
-                    if(channelTransitions[c].time >= channelTransitions[c].totalTime)
-                    {
-                        channelTransitions[c].time = channelTransitions[c].totalTime;
-                        channelTransitions[c].active = 0;
-                    }
-
-                    float f = channelTransitions[c].time / channelTransitions[c].totalTime;
-                    
-                    
-                    float difference = channelTransitions[c].targetFrequency - channelTransitions[c].startFrequency;
-                    channels[c].frequency = channelTransitions[c].startFrequency + difference * f;
-
-                    difference = channelTransitions[c].targetVolume - channelTransitions[c].startVolume;
-                    channels[c].volume = channelTransitions[c].startVolume + difference * f;
-                }
                 
                 if(channelGenerators[c].type == GENERATOR_TYPE_TONE)
                 {
-                    channelGenerators[c].toneAngle += channels[c].frequency * (360.0f) * 1.0f / SAMPLE_RATE; 
+                    channelGenerators[c].toneAngle += channels[c].frequency * (360.0f) * SAMPLE_DELTA_TIME; 
                     if(channelGenerators[c].toneAngle > 360) { channelGenerators[c].toneAngle = channelGenerators[c].toneAngle - 360.0f;}
                     channels[c].output = sin(channelGenerators[c].toneAngle * DEG2RAD);
                 }
                 else
                 {
+                    ASSERT(channels[c].frequency > 0, "Frequency is zero");
                     float noisePeriod = 1.0f / channels[c].frequency;
+                    ASSERT(noisePeriod > 0, "Noise period is zero");
+                    
+                    
                     channelGenerators[c].noisePhase +=  (channelGenerators[c].noiseTargetPhase - channelGenerators[c].noisePhase) * channelGenerators[c].noiseChangePhaseTimer / noisePeriod;
                     channelGenerators[c].noiseChangePhaseTimer += SAMPLE_DELTA_TIME;
                     if(channelGenerators[c].noiseChangePhaseTimer > noisePeriod)
@@ -131,7 +243,7 @@ static int soundCallback( const void *input, void *output, unsigned long samples
                         channelGenerators[c].noiseChangePhaseTimer -= noisePeriod;
                     }
                     
-                    channels[c].output = channelGenerators[c].noisePhase;
+                    channels[c].output = channelGenerators[c].noisePhase;                    
                 }
                 
                 
@@ -188,9 +300,22 @@ int reserveChannel(int generatorType)
         if(channels[index].owned == 0)
         {
             channels[index].owned = 1;
+            channels[index].volume = 0;
+            channels[index].frequency = 1; 
+            channels[index].output = 0;
             channelGenerators[index].type = generatorType;
-            if(generatorType == GENERATOR_TYPE_TONE) { channelGenerators[index].toneAngle = 0; }
-            channelTransitions[index].active = 0;    
+            if(generatorType == GENERATOR_TYPE_TONE)
+            {
+                channelGenerators[index].toneAngle = 0;
+            }
+            else
+            {
+                channelGenerators[index].noiseTargetPhase = 0;
+                channelGenerators[index].noisePhase = 0;
+                channelGenerators[index].noiseChangePhaseTimer = 0;
+                
+            }
+            channelSounds[index].state = SOUND_STATE_STOPPED;    
             found = index;
         }
         else { index ++; }
@@ -232,29 +357,75 @@ void setVolume(float volume)
     masterVolume = volume;
 }
 
-void startChannelTransition(int index, float frequency, float volume, float time)
+void playSound(int index, float frequency, float volume, float attackDuration, float sustainDuration, float fadeDuration, int loop)
 {
-    channelTransitions[index].active = 1;
-    channelTransitions[index].startFrequency = channels[index].frequency;
-    channelTransitions[index].startVolume = channels[index].volume;
-    if(frequency >= 0) { channelTransitions[index].targetFrequency = frequency; }
-    else { channelTransitions[index].targetFrequency = channels[index].frequency; }
-    if(volume >= 0) { channelTransitions[index].targetVolume = volume; }
-    else { channelTransitions[index].targetVolume = channels[index].volume; }
-        
-    channelTransitions[index].totalTime = time;
-    channelTransitions[index].time = 0;
+    channelSounds[index].state = SOUND_STATE_PLAYING;
+    channelSounds[index].volume = volume;
+    channelSounds[index].frequency = frequency;
+    channelSounds[index].attackDuration = attackDuration;
+    channelSounds[index].sustainDuration = sustainDuration;
+    channelSounds[index].fadeDuration = fadeDuration;
+    channelSounds[index].loop = loop;
+    channelSounds[index].time = 0;
+    channelSounds[index].gotoFrequency = 0;
+    channelSounds[index].gotoVolume = 0;
     
 }
 
-void stopChannelTransition(int index)
+void stopSound(int index)
 {
-    channelTransitions[index].active = 0;
+    if(channelSounds[index].state == SOUND_STATE_PLAYING)
+    {
+        channelSounds[index].gotoFrequency = 0;
+        channelSounds[index].gotoVolume = 0;
+
+        channelSounds[index].time = channelSounds[index].attackDuration + channelSounds[index].sustainDuration;
+        channelSounds[index].volume = channels[index].volume;
+        channelSounds[index].state = SOUND_STATE_STOPPING;
+        
+    }
 }
 
-int isChannelTransitioning(int index)
+int isSoundPlaying(int index)
 {
-    return channelTransitions[index].active;
+    return channelSounds[index].state == SOUND_STATE_PLAYING;
+}
+
+void gotoSoundFrequency(int index, float frequency, float duration)
+{
+    if(channelSounds[index].state == SOUND_STATE_PLAYING)
+    {
+        channelSounds[index].gotoFrequency = 1;
+        channelSounds[index].gotoFrequencyTimer = 0;
+        channelSounds[index].gotoFrequencyStart = channelSounds[index].frequency;
+        channelSounds[index].gotoFrequencyEnd = frequency;
+        channelSounds[index].gotoFrequencyDuration = duration;
+        
+    }
+}
+
+void gotoSoundVolume(int index, float volume, float duration)
+{
+    if(channelSounds[index].state == SOUND_STATE_PLAYING)
+    {
+        channelSounds[index].gotoVolume = 1;
+        channelSounds[index].gotoVolumeTimer = 0;
+        channelSounds[index].gotoVolumeStart = channelSounds[index].volume;
+        channelSounds[index].gotoVolumeEnd = volume;
+        channelSounds[index].gotoVolumeDuration = duration;
+        
+    }
+    
+}
+
+int isSoundGoingVolume(int index)
+{
+    return channelSounds[index].state == SOUND_STATE_PLAYING && channelSounds[index].gotoVolume;
+}
+
+int isSoundGoingFrequency(int index)
+{
+    return channelSounds[index].state == SOUND_STATE_PLAYING && channelSounds[index].gotoFrequency;
 }
 
 void initSound()
@@ -268,15 +439,20 @@ void initSound()
         channels[i].muted = 0;
 
         channels[i].volume = 0;
-        channels[i].frequency = 0;         
+        channels[i].frequency = 1;         
 
         channels[i].output = 0;
   
         channelGenerators[i].type = GENERATOR_TYPE_TONE;
+        
         channelGenerators[i].toneAngle = 0;
+        
+        channelGenerators[i].noiseChangePhaseTimer = 0;
         channelGenerators[i].noisePhase = 0;
+        channelGenerators[i].noiseTargetPhase = 0;
 
-        channelTransitions[i].active = 0;    
+        channelSounds[i].state = SOUND_STATE_STOPPED;    
+
     }
     
     
