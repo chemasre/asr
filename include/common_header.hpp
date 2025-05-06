@@ -8,6 +8,7 @@
 #include <input.hpp>
 #include <screen.hpp>
 #include <sound.hpp>
+#include <log.hpp>
 #include <system.hpp>
 
 #define PI 3.1415926536

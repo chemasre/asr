@@ -26,12 +26,24 @@ int musicChannelNoiseHigh;
 int musicChannelLow;
 int musicChannelNoiseLow;
 
+int musicSoundHigh;
+int musicSoundNoiseHigh;
+
+int musicSoundLow;
+int musicSoundNoiseLow;
+
 void initMusic()
 {
     musicChannelHigh = reserveChannel(GENERATOR_TYPE_TONE);
     musicChannelNoiseHigh = reserveChannel(GENERATOR_TYPE_NOISE);
     musicChannelLow = reserveChannel(GENERATOR_TYPE_TONE);
     musicChannelNoiseLow = reserveChannel(GENERATOR_TYPE_NOISE);
+    
+    musicSoundHigh = reserveSound();
+    musicSoundNoiseHigh = reserveSound();
+    musicSoundLow = reserveSound();
+    musicSoundNoiseLow = reserveSound();
+
     
     musicVolume = 0.3f;
     musicTimer = 0;
@@ -41,10 +53,10 @@ void initMusic()
     float sustainDuration = randomRange(MUSIC_SUSTAIN_MIN, MUSIC_SUSTAIN_MAX);
     float outDuration = randomRange(MUSIC_OUT_MIN, MUSIC_OUT_MAX);
     
-    playSound(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-    playSound(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-    playSound(musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-    playSound(musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+    playSound(musicSoundHigh, musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+    playSound(musicSoundLow, musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+    playSound(musicSoundNoiseHigh, musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+    playSound(musicSoundNoiseLow, musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
     musicState = 0;
                           
     musicSilenceWait = 0;
@@ -63,17 +75,17 @@ void updateMusic()
             float sustainDuration = randomRange(MUSIC_SUSTAIN_MIN, MUSIC_SUSTAIN_MAX);
             float outDuration = randomRange(MUSIC_OUT_MIN, MUSIC_OUT_MAX);
             
-            playSound(musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-            playSound(musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-            playSound(musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
-            playSound(musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+            playSound(musicSoundHigh, musicChannelHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+            playSound(musicSoundLow, musicChannelLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+            playSound(musicSoundNoiseHigh, musicChannelNoiseHigh, randomRange(MUSIC_FREQUENCY_HIGH_MIN, MUSIC_FREQUENCY_HIGH_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
+            playSound(musicSoundNoiseLow, musicChannelNoiseLow, randomRange(MUSIC_FREQUENCY_LOW_MIN, MUSIC_FREQUENCY_LOW_MAX), musicVolume, inDuration, sustainDuration, outDuration, 0);
     
             musicState = 0;
         }
     }
     
-    if(!isSoundPlaying(musicChannelHigh) && !isSoundPlaying(musicChannelLow) &&
-       !isSoundPlaying(musicChannelNoiseHigh) && !isSoundPlaying(musicChannelNoiseLow))
+    if(!isSoundPlaying(musicSoundHigh) && !isSoundPlaying(musicSoundLow) &&
+       !isSoundPlaying(musicSoundNoiseHigh) && !isSoundPlaying(musicSoundNoiseLow))
     {
         if(musicState == 0)
         {
@@ -91,4 +103,9 @@ void finishMusic()
     releaseChannel(musicChannelLow);
     releaseChannel(musicChannelNoiseHigh);
     releaseChannel(musicChannelNoiseLow);
+    
+    releaseSound(musicSoundHigh);
+    releaseSound(musicSoundLow);
+    releaseSound(musicSoundNoiseHigh);
+    releaseSound(musicSoundNoiseLow);    
 }

@@ -29,4 +29,8 @@ int randomRange(int min, int max)
 void initSystem()
 {
     srand(time(NULL));
+
 }
+
+
+

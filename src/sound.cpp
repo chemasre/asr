@@ -23,19 +23,22 @@ struct SoundData
 
 struct Channel
 {
-    int owned;
+    int reserved;
     
     int muted;
-    float phase;
+    int playingSound;
     float volume;
     float frequency;
     float output;   
 
 };
 
-struct ChannelSound
+struct Sound
 {
-    int state;
+    int reserved;
+    
+    int channel;
+    int playState;
     float frequency;
     float volume;
     float time;
@@ -57,7 +60,7 @@ struct ChannelSound
     float gotoVolumeDuration;
 };
 
-struct ChannelGenerator
+struct Generator
 {
     int type;    
     
@@ -75,8 +78,8 @@ struct ChannelGenerator
 float masterVolume;
 
 Channel channels[MAX_CHANNELS];
-ChannelGenerator channelGenerators[MAX_CHANNELS];
-ChannelSound channelSounds[MAX_CHANNELS];
+Generator generators[MAX_CHANNELS];
+Sound sounds[MAX_SOUNDS];
 
 static SoundData soundCallbackData;
 float soundCallbackTimer;
@@ -90,143 +93,155 @@ static int soundCallback( const void *input, void *output, unsigned long samples
     
     float totalVolume = 0;
     float meanVolume = 0;
-    int activeChannelsCount = 0;
+    int playingChannelsCount = 0;
     
     for(int i = 0; i < MAX_CHANNELS; i++)
     {
-        if(channels[i].owned && !channels[i].muted && (channelSounds[i].state == SOUND_STATE_PLAYING || channelSounds[i].state == SOUND_STATE_STOPPING))
+        if(channels[i].reserved && !channels[i].muted && channels[i].playingSound)
         {
-            activeChannelsCount ++;
+            playingChannelsCount ++;
             totalVolume += channels[i].volume;
         }
 
     }
     
-    if(activeChannelsCount > 0) { meanVolume = totalVolume / activeChannelsCount; }
+    if(playingChannelsCount > 0) { meanVolume = totalVolume / playingChannelsCount; }
     
-    for(int s = 0; s < samplesPerCallback; s++ )
+    for(int k = 0; k < samplesPerCallback; k++ )
     {
-        for(int c = 0; c < MAX_CHANNELS; c++)
+        for(int s = 0; s < MAX_SOUNDS; s++)
         {
-            if(channelSounds[c].state == SOUND_STATE_PLAYING)
+            if(sounds[s].reserved)
             {
-                if(channelSounds[c].gotoFrequency)
-                {
-                    channelSounds[c].gotoFrequencyTimer += SAMPLE_DELTA_TIME;
-                    
-                    if(channelSounds[c].gotoFrequencyTimer >= channelSounds[c].gotoFrequencyDuration)
-                    {
-                        channelSounds[c].frequency = channelSounds[c].gotoFrequencyEnd;
-                        channelSounds[c].gotoFrequency = 0;
-                    }
-                    else
-                    {
-                        channelSounds[c].frequency = channelSounds[c].gotoFrequencyStart + (channelSounds[c].gotoFrequencyEnd - channelSounds[c].gotoFrequencyStart) * channelSounds[c].gotoFrequencyTimer / channelSounds[c].gotoFrequencyDuration;
-                    }
-                }
+                int c = sounds[s].channel;
                 
-                if(channelSounds[c].gotoVolume)
+                if(sounds[s].playState == SOUND_STATE_PLAYING)
                 {
-                    channelSounds[c].gotoVolumeTimer += SAMPLE_DELTA_TIME;
+                    // Update sound gotos
                     
-                    if(channelSounds[c].gotoVolumeTimer >= channelSounds[c].gotoVolumeDuration)
+                    if(sounds[s].gotoFrequency)
                     {
-                        channelSounds[c].volume = channelSounds[c].gotoVolumeEnd;
-                        channelSounds[c].gotoVolume = 0;                        
-                    }
-                    else
-                    {
-                        channelSounds[c].frequency = channelSounds[c].gotoVolumeStart + (channelSounds[c].gotoVolumeEnd - channelSounds[c].gotoVolumeStart) * channelSounds[c].gotoVolumeTimer / channelSounds[c].gotoVolumeDuration;
+                        sounds[s].gotoFrequencyTimer += SAMPLE_DELTA_TIME;
+                        
+                        if(sounds[s].gotoFrequencyTimer >= sounds[s].gotoFrequencyDuration)
+                        {
+                            sounds[s].frequency = sounds[s].gotoFrequencyEnd;
+                            sounds[s].gotoFrequency = 0;
+                        }
+                        else
+                        {
+                            sounds[s].frequency = sounds[s].gotoFrequencyStart + (sounds[s].gotoFrequencyEnd - sounds[s].gotoFrequencyStart) * sounds[s].gotoFrequencyTimer / sounds[s].gotoFrequencyDuration;
+                        }
                     }
                     
-                }                
-                
-                
-                channelSounds[c].time += SAMPLE_DELTA_TIME;
-                
-                if(channelSounds[c].time <= channelSounds[c].attackDuration)
-                {
-                    channels[c].frequency = channelSounds[c].frequency;
-                    
-                    if(channelSounds[c].attackDuration > 0)
+                    if(sounds[s].gotoVolume)
                     {
-                        channels[c].volume = channelSounds[c].time / channelSounds[c].attackDuration * channelSounds[c].volume;
-                    }
-                    else
-                    {
-                        channels[c].volume = 1;
-                    }
-                }
-                else if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration)
-                {
-                    channels[c].frequency = channelSounds[c].frequency;
-                    channels[c].volume = channelSounds[c].volume;
-                }
-                else if(channelSounds[c].loop)
-                {
-                    channelSounds[c].time = channelSounds[c].attackDuration;
-                    channels[c].frequency = channelSounds[c].frequency;
-                    channels[c].volume = channelSounds[c].volume;
-                }                
-                else if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration + channelSounds[c].fadeDuration)
-                {
-                    float t = channelSounds[c].time - (channelSounds[c].attackDuration + channelSounds[c].sustainDuration);
-                    channels[c].frequency = channelSounds[c].frequency;
-                    
-                    if(channelSounds[c].fadeDuration > 0)
-                    {
-                        channels[c].volume = channelSounds[c].volume * (1 - t / channelSounds[c].fadeDuration);
-                    }
-                    else
-                    {
-                        channels[c].volume = 0;
-                    }
-                }
-                else
-                {
-                    channels[c].frequency = channelSounds[c].frequency;
-                    channels[c].volume = 0;
-                    channelSounds[c].state = SOUND_STATE_STOPPED;
-                }
-            }
-            else if(channelSounds[c].state == SOUND_STATE_STOPPING)
-            {
-                channelSounds[c].time += SAMPLE_DELTA_TIME;
+                        sounds[s].gotoVolumeTimer += SAMPLE_DELTA_TIME;
+                        
+                        if(sounds[s].gotoVolumeTimer >= sounds[s].gotoVolumeDuration)
+                        {
+                            sounds[s].volume = sounds[s].gotoVolumeEnd;
+                            sounds[s].gotoVolume = 0;                        
+                        }
+                        else
+                        {
+                            sounds[s].volume = sounds[s].gotoVolumeStart + (sounds[s].gotoVolumeEnd - sounds[s].gotoVolumeStart) * sounds[s].gotoVolumeTimer / sounds[s].gotoVolumeDuration;
+                        }
+                        
+                    }     
 
-                if(channelSounds[c].time <= channelSounds[c].attackDuration + channelSounds[c].sustainDuration + channelSounds[c].fadeDuration)
-                {
-                    float t = channelSounds[c].time - (channelSounds[c].attackDuration + channelSounds[c].sustainDuration);
-                    channels[c].frequency = channelSounds[c].frequency;
+                    // update channel frequency and volume
                     
-                    if(channelSounds[c].fadeDuration > 0)
+                    sounds[s].time += SAMPLE_DELTA_TIME;
+                    
+                    if(sounds[s].time <= sounds[s].attackDuration)
                     {
-                        channels[c].volume = channelSounds[c].volume * (1 - t / channelSounds[c].fadeDuration);
+                        channels[c].frequency = sounds[s].frequency;
+                        
+                        if(sounds[s].attackDuration > 0)
+                        {
+                            channels[c].volume = sounds[s].time / sounds[s].attackDuration * sounds[s].volume;
+                        }
+                        else
+                        {
+                            channels[c].volume = 1;
+                        }
+                    }
+                    else if(sounds[s].time <= sounds[s].attackDuration + sounds[s].sustainDuration)
+                    {
+                        channels[c].frequency = sounds[s].frequency;
+                        channels[c].volume = sounds[s].volume;
+                    }
+                    else if(sounds[s].loop)
+                    {
+                        sounds[s].time = sounds[s].attackDuration;
+                        channels[c].frequency = sounds[s].frequency;
+                        channels[c].volume = sounds[s].volume;
+                    }                
+                    else if(sounds[s].time <= sounds[s].attackDuration + sounds[s].sustainDuration + sounds[s].fadeDuration)
+                    {
+                        float t = sounds[s].time - (sounds[s].attackDuration + sounds[s].sustainDuration);
+                        channels[c].frequency = sounds[s].frequency;
+                        
+                        if(sounds[s].fadeDuration > 0)
+                        {
+                            channels[c].volume = sounds[s].volume * (1 - t / sounds[s].fadeDuration);
+                        }
+                        else
+                        {
+                            channels[c].volume = 0;
+                        }
                     }
                     else
                     {
+                        channels[c].frequency = sounds[s].frequency;
                         channels[c].volume = 0;
+                        sounds[s].playState = SOUND_STATE_STOPPED;
+                        channels[c].playingSound = 0;
+                    }
+                }
+                else if(sounds[s].playState == SOUND_STATE_STOPPING)
+                {
+                    sounds[s].time += SAMPLE_DELTA_TIME;
+
+                    if(sounds[s].time <= sounds[s].attackDuration + sounds[s].sustainDuration + sounds[s].fadeDuration)
+                    {
+                        float t = sounds[s].time - (sounds[s].attackDuration + sounds[s].sustainDuration);
+                        channels[c].frequency = sounds[s].frequency;
+                        
+                        if(sounds[s].fadeDuration > 0)
+                        {
+                            channels[c].volume = sounds[s].volume * (1 - t / sounds[s].fadeDuration);
+                        }
+                        else
+                        {
+                            channels[c].volume = 0;
+                        }                
+                    }
+                    else
+                    {
+                        channels[c].frequency = sounds[s].frequency;
+                        channels[c].volume = 0;
+                        sounds[s].playState = SOUND_STATE_STOPPED;
+                        channels[c].playingSound = 0;
                     }                
                 }
-                else
-                {
-                    channels[c].frequency = channelSounds[c].frequency;
-                    channels[c].volume = 0;
-                    channelSounds[c].state = SOUND_STATE_STOPPED;
-                }                
+
             }
+            
             
         }
 
         for(int c = 0; c < MAX_CHANNELS; c ++)
         {
-            if(channels[c].owned && !channels[c].muted && (channelSounds[c].state == SOUND_STATE_PLAYING || channelSounds[c].state == SOUND_STATE_STOPPING))
+            if(channels[c].reserved && !channels[c].muted && channels[c].playingSound)
             {
                 
-                if(channelGenerators[c].type == GENERATOR_TYPE_TONE)
+                if(generators[c].type == GENERATOR_TYPE_TONE)
                 {
-                    channelGenerators[c].toneAngle += channels[c].frequency * (360.0f) * SAMPLE_DELTA_TIME; 
-                    if(channelGenerators[c].toneAngle > 360) { channelGenerators[c].toneAngle = channelGenerators[c].toneAngle - 360.0f;}
-                    channels[c].output = sin(channelGenerators[c].toneAngle * DEG2RAD);
+                    generators[c].toneAngle += channels[c].frequency * (360.0f) * SAMPLE_DELTA_TIME; 
+                    if(generators[c].toneAngle > 360) { generators[c].toneAngle = generators[c].toneAngle - 360.0f;}
+                    channels[c].output = sin(generators[c].toneAngle * DEG2RAD);
                 }
                 else
                 {
@@ -235,15 +250,15 @@ static int soundCallback( const void *input, void *output, unsigned long samples
                     ASSERT(noisePeriod > 0, "Noise period is zero");
                     
                     
-                    channelGenerators[c].noisePhase +=  (channelGenerators[c].noiseTargetPhase - channelGenerators[c].noisePhase) * channelGenerators[c].noiseChangePhaseTimer / noisePeriod;
-                    channelGenerators[c].noiseChangePhaseTimer += SAMPLE_DELTA_TIME;
-                    if(channelGenerators[c].noiseChangePhaseTimer > noisePeriod)
+                    generators[c].noisePhase +=  (generators[c].noiseTargetPhase - generators[c].noisePhase) * generators[c].noiseChangePhaseTimer / noisePeriod;
+                    generators[c].noiseChangePhaseTimer += SAMPLE_DELTA_TIME;
+                    if(generators[c].noiseChangePhaseTimer > noisePeriod)
                     {
-                        channelGenerators[c].noiseTargetPhase = randomRange(-1000, 1000) / 1000.0f;
-                        channelGenerators[c].noiseChangePhaseTimer -= noisePeriod;
+                        generators[c].noiseTargetPhase = randomRange(-1000, 1000) / 1000.0f;
+                        generators[c].noiseChangePhaseTimer -= noisePeriod;
                     }
                     
-                    channels[c].output = channelGenerators[c].noisePhase;                    
+                    channels[c].output = generators[c].noisePhase;                    
                 }
                 
                 
@@ -297,25 +312,29 @@ int reserveChannel(int generatorType)
     
     while(found < 0 && index < MAX_CHANNELS)
     {
-        if(channels[index].owned == 0)
+        if(channels[index].reserved == 0)
         {
-            channels[index].owned = 1;
+            channels[index].reserved = 1;
+            channels[index].muted = 0;
+            channels[index].playingSound = 0;
+            
             channels[index].volume = 0;
             channels[index].frequency = 1; 
             channels[index].output = 0;
-            channelGenerators[index].type = generatorType;
+            
+            generators[index].type = generatorType;
             if(generatorType == GENERATOR_TYPE_TONE)
             {
-                channelGenerators[index].toneAngle = 0;
+                generators[index].toneAngle = 0;
             }
             else
             {
-                channelGenerators[index].noiseTargetPhase = 0;
-                channelGenerators[index].noisePhase = 0;
-                channelGenerators[index].noiseChangePhaseTimer = 0;
+                generators[index].noiseTargetPhase = 0;
+                generators[index].noisePhase = 0;
+                generators[index].noiseChangePhaseTimer = 0;
                 
             }
-            channelSounds[index].state = SOUND_STATE_STOPPED;    
+            sounds[index].playState = SOUND_STATE_STOPPED;    
             found = index;
         }
         else { index ++; }
@@ -328,7 +347,7 @@ int reserveChannel(int generatorType)
 
 void releaseChannel(int index)
 {
-    channels[index].owned = 0;
+    channels[index].reserved = 0;
 }
 
 void muteChannel(int index)
@@ -352,67 +371,135 @@ void setChannelVolume(int index, float volume)
     channels[index].volume = volume;
 }
 
-void setVolume(float volume)
+void setMasterVolume(float volume)
 {
     masterVolume = volume;
 }
 
-void playSound(int index, float frequency, float volume, float attackDuration, float sustainDuration, float fadeDuration, int loop)
+int reserveSound()
 {
-    channelSounds[index].state = SOUND_STATE_PLAYING;
-    channelSounds[index].volume = volume;
-    channelSounds[index].frequency = frequency;
-    channelSounds[index].attackDuration = attackDuration;
-    channelSounds[index].sustainDuration = sustainDuration;
-    channelSounds[index].fadeDuration = fadeDuration;
-    channelSounds[index].loop = loop;
-    channelSounds[index].time = 0;
-    channelSounds[index].gotoFrequency = 0;
-    channelSounds[index].gotoVolume = 0;
+    int foundIndex = -1;
+    int index = 0;
+    
+    while(index < MAX_SOUNDS && foundIndex < 0)
+    {
+        if(!sounds[index].reserved)
+        {
+            sounds[index].reserved = 1;
+            foundIndex = index;
+
+        }
+        else
+        {
+            index ++;
+        }
+    }
+    
+    return foundIndex;
+    
+}
+
+void releaseSound(int index)
+{
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "releaseSound: Sound is out of range") 
+    
+    sounds[index].reserved = 0;
+}
+
+void playSound(int sound, int channel, float frequency, float volume, float attackDuration, float sustainDuration, float fadeDuration, int loop)
+{
+    ASSERT(sound >= 0 && sound < MAX_SOUNDS, "playSound: Sound is out of range") 
+    ASSERT(sounds[sound].reserved, "playSound: Sound is not reserved") 
+    ASSERT(channel >= 0 && channel < MAX_CHANNELS, "playSound: Channel is out of range") 
+    ASSERT(channels[channel].reserved, "playSound: Channel is not reserved") 
+    
+    sounds[sound].playState = SOUND_STATE_PLAYING;
+    sounds[sound].channel = channel;
+    channels[channel].playingSound = 1;
+    
+    sounds[sound].volume = volume;
+    sounds[sound].frequency = frequency;
+    sounds[sound].attackDuration = attackDuration;
+    sounds[sound].sustainDuration = sustainDuration;
+    sounds[sound].fadeDuration = fadeDuration;
+    sounds[sound].loop = loop;
+    sounds[sound].time = 0;
+    sounds[sound].gotoFrequency = 0;
+    sounds[sound].gotoVolume = 0;   
+
     
 }
 
 void stopSound(int index)
-{
-    if(channelSounds[index].state == SOUND_STATE_PLAYING)
-    {
-        channelSounds[index].gotoFrequency = 0;
-        channelSounds[index].gotoVolume = 0;
+{    
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "stopSound: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "stopSound: Sound is not reserved")
 
-        channelSounds[index].time = channelSounds[index].attackDuration + channelSounds[index].sustainDuration;
-        channelSounds[index].volume = channels[index].volume;
-        channelSounds[index].state = SOUND_STATE_STOPPING;
+    if(sounds[index].playState == SOUND_STATE_PLAYING)
+    {
+        sounds[index].gotoFrequency = 0;
+        sounds[index].gotoVolume = 0;
+
+        sounds[index].time = sounds[index].attackDuration + sounds[index].sustainDuration;
+        sounds[index].volume = channels[index].volume;
+        sounds[index].playState = SOUND_STATE_STOPPING;
         
     }
 }
 
 int isSoundPlaying(int index)
+{ 
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "isSoundPlaying: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "isSoundPlaying: Sound is not reserved")
+  
+    return (sounds[index].playState == SOUND_STATE_PLAYING || sounds[index].playState == SOUND_STATE_STOPPING);
+}
+
+int isSoundStopping(int index)
+{ 
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "isSoundPlaying: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "isSoundPlaying: Sound is not reserved")
+  
+    return (sounds[index].playState == SOUND_STATE_STOPPING);
+}
+
+
+int isSoundPlayingInChannel(int index)
 {
-    return channelSounds[index].state == SOUND_STATE_PLAYING;
+    ASSERT(index >= 0 && index < MAX_CHANNELS, "isSoundPlayingInChannel: Channel index out of range") 
+    ASSERT(channels[index].reserved, "isSoundPlayingInChannel: Channel is not reserved")
+
+    return channels[index].playingSound;
 }
 
 void gotoSoundFrequency(int index, float frequency, float duration)
 {
-    if(channelSounds[index].state == SOUND_STATE_PLAYING)
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "gotoSoundFrequency: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "gotoSoundFrequency: Sound is not reserved")
+    
+    if(sounds[index].playState == SOUND_STATE_PLAYING)
     {
-        channelSounds[index].gotoFrequency = 1;
-        channelSounds[index].gotoFrequencyTimer = 0;
-        channelSounds[index].gotoFrequencyStart = channelSounds[index].frequency;
-        channelSounds[index].gotoFrequencyEnd = frequency;
-        channelSounds[index].gotoFrequencyDuration = duration;
+        sounds[index].gotoFrequency = 1;
+        sounds[index].gotoFrequencyTimer = 0;
+        sounds[index].gotoFrequencyStart = sounds[index].frequency;
+        sounds[index].gotoFrequencyEnd = frequency;
+        sounds[index].gotoFrequencyDuration = duration;
         
     }
 }
 
 void gotoSoundVolume(int index, float volume, float duration)
 {
-    if(channelSounds[index].state == SOUND_STATE_PLAYING)
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "gotoSoundVolume: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "gotoSoundVolume: Sound is not reserved")
+
+    if(sounds[index].playState == SOUND_STATE_PLAYING)
     {
-        channelSounds[index].gotoVolume = 1;
-        channelSounds[index].gotoVolumeTimer = 0;
-        channelSounds[index].gotoVolumeStart = channelSounds[index].volume;
-        channelSounds[index].gotoVolumeEnd = volume;
-        channelSounds[index].gotoVolumeDuration = duration;
+        sounds[index].gotoVolume = 1;
+        sounds[index].gotoVolumeTimer = 0;
+        sounds[index].gotoVolumeStart = sounds[index].volume;
+        sounds[index].gotoVolumeEnd = volume;
+        sounds[index].gotoVolumeDuration = duration;
         
     }
     
@@ -420,38 +507,50 @@ void gotoSoundVolume(int index, float volume, float duration)
 
 int isSoundGoingVolume(int index)
 {
-    return channelSounds[index].state == SOUND_STATE_PLAYING && channelSounds[index].gotoVolume;
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "isSoundGoingVolume: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "isSoundGoingVolume: Sound is not reserved")
+    
+    return sounds[index].playState == SOUND_STATE_PLAYING && sounds[index].gotoVolume;
 }
 
 int isSoundGoingFrequency(int index)
 {
-    return channelSounds[index].state == SOUND_STATE_PLAYING && channelSounds[index].gotoFrequency;
+    ASSERT(index >= 0 && index < MAX_SOUNDS, "isSoundGoingFrequency: Sound index out of range") 
+    ASSERT(sounds[index].reserved, "isSoundGoingFrequency: Sound is not reserved")
+
+    return sounds[index].playState == SOUND_STATE_PLAYING && sounds[index].gotoFrequency;
 }
 
 void initSound()
 {
     soundCallbackData.leftOutput = 0.0f;
     soundCallbackData.rightOutput = 0.0f;
+    
+    for(int i = 0; i < MAX_SOUNDS; i++)
+    {
+        sounds[i].reserved = 0;
+        sounds[i].playState = SOUND_STATE_STOPPED;    
+    }
 
     for(int i = 0; i < MAX_CHANNELS; i++)
     {        
-        channels[i].owned = 0;
+        channels[i].reserved = 0;
         channels[i].muted = 0;
+        channels[i].playingSound = 0;
 
         channels[i].volume = 0;
         channels[i].frequency = 1;         
 
         channels[i].output = 0;
   
-        channelGenerators[i].type = GENERATOR_TYPE_TONE;
+        generators[i].type = GENERATOR_TYPE_TONE;
         
-        channelGenerators[i].toneAngle = 0;
+        generators[i].toneAngle = 0;
         
-        channelGenerators[i].noiseChangePhaseTimer = 0;
-        channelGenerators[i].noisePhase = 0;
-        channelGenerators[i].noiseTargetPhase = 0;
+        generators[i].noiseChangePhaseTimer = 0;
+        generators[i].noisePhase = 0;
+        generators[i].noiseTargetPhase = 0;
 
-        channelSounds[i].state = SOUND_STATE_STOPPED;    
 
     }
     

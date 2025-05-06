@@ -83,8 +83,9 @@
 void main()
 {
     initSystem();
+    initLog();
     initInput();
-    initSound();
+    initSound();    
     initSprites();
     initTextures();
     initScreen();
@@ -354,5 +355,6 @@ void main()
 
     finishMusic();
     finishSound();
+    finishLog();
 
 }

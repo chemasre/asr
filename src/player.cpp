@@ -30,70 +30,88 @@ int playerIsRunning;
 
 float lastHealth = 0;
 
-int soundMovingChannel;
-int soundMovingNoiseChannel;
+int movingChannel;
+int movingNoiseChannel;
 int healthHighChannel;
 int healthLowChannel;
 
+int movingSound;
+int movingNoiseSound;
+int healthHighSound;
+int healthLowSound;
+
 void initPlayerSound()
 {
-    soundMovingChannel = reserveChannel(GENERATOR_TYPE_TONE);
-    soundMovingNoiseChannel = reserveChannel(GENERATOR_TYPE_NOISE);
+    movingChannel = reserveChannel(GENERATOR_TYPE_TONE);
+    movingNoiseChannel = reserveChannel(GENERATOR_TYPE_NOISE);
     healthLowChannel = reserveChannel(GENERATOR_TYPE_TONE);
     healthHighChannel = reserveChannel(GENERATOR_TYPE_TONE);
+    
+    movingSound = reserveSound();
+    movingNoiseSound = reserveSound();
+    healthHighSound = reserveSound();
+    healthLowSound = reserveSound();
 }
 
 void updatePlayerSound()
 {
     if(playerIsMoving)
     {
-        if(!isSoundPlaying(soundMovingChannel))
+        float frequency = playerIsRunning ? 83 : 63;
+        float volume = playerIsRunning ? 0.7f : 0.5f;            
+
+        if(!isSoundPlaying(movingSound))
         {
-            playSound(soundMovingChannel, playerIsRunning ? 83 : 93, playerIsRunning ? 0.3f : 0.2f, 0.1f, 0.1f, 0.1f, 1);
+            playSound(movingSound, movingChannel, frequency, volume, 0.1f, 0.1f, 0.1f, 1);
         }
         
-        if(!isSoundPlaying(soundMovingNoiseChannel))
+        if(!isSoundPlaying(movingNoiseSound))
         {
-            playSound(soundMovingNoiseChannel, playerIsRunning ? 83 : 63, playerIsRunning ? 0.7f : 0.5f, 0.1f, 0.1f, 0.1f, 1);            
+            playSound(movingNoiseSound, movingNoiseChannel, frequency, volume, 0.1f, 0.1f, 0.1f, 1);            
         }
 
-        if(isSoundPlaying(soundMovingChannel) && !isSoundGoingFrequency(soundMovingChannel)) { gotoSoundFrequency(soundMovingChannel, playerIsRunning ? 93 : 63, 0.2f); }
-        if(isSoundPlaying(soundMovingNoiseChannel) && !isSoundGoingFrequency(soundMovingNoiseChannel)) { gotoSoundFrequency(soundMovingNoiseChannel, playerIsRunning ? 83 : 63, 0.2f); }
+        if(isSoundPlaying(movingSound) && !isSoundGoingFrequency(movingSound))
+        { gotoSoundFrequency(movingSound, frequency, 0.2f); }
+        if(isSoundPlaying(movingNoiseSound) && !isSoundGoingFrequency(movingNoiseSound)) { gotoSoundFrequency(movingNoiseSound, frequency, 0.2f); }
 
-        if(!isSoundGoingVolume(soundMovingChannel)) { gotoSoundVolume(soundMovingChannel, playerIsRunning ? 0.3f : 0.2f, 0.2f); }
-        if(!isSoundGoingVolume(soundMovingNoiseChannel)) { gotoSoundVolume(soundMovingChannel, playerIsRunning ? 0.7f : 0.5f, 0.2f); }
+        if(!isSoundGoingVolume(movingSound)) { gotoSoundVolume(movingSound, volume, 0.2f); }
+        if(!isSoundGoingVolume(movingNoiseSound)) { gotoSoundVolume(movingNoiseSound, volume, 0.2f); }
     }
     else
     {
-        if(isSoundPlaying(soundMovingChannel)) { stopSound(soundMovingChannel); }
-        if(isSoundPlaying(soundMovingNoiseChannel)) { stopSound(soundMovingNoiseChannel); }
+        if(isSoundPlaying(movingSound) && !isSoundStopping(movingSound)) { stopSound(movingSound); }
+        if(isSoundPlaying(movingNoiseSound) && !isSoundStopping(movingNoiseSound)) { stopSound(movingNoiseSound); }
     }
 
     float alarmFactor = (PLAYER_MAX_HEALTH - playerHealth) / PLAYER_MAX_HEALTH;
     if(alarmFactor >= 1.0f)
     {
-        if(!isSoundPlaying(healthHighChannel))
+        if(!isSoundPlayingInChannel(healthHighChannel))
         {
-            playSound(healthHighChannel, 500 * 2, randomRange(80, 100) / 100.0f * 0.6, 0.1f, 0.5f, 0.5f, 0);
+            float volume = randomRange(80, 100) / 100.0f * 0.6;
+            playSound(healthHighSound, healthHighChannel, 500 * 2, volume, 0.1f, 0.5f, 0.5f, 0);
         }
         
-        if(!isSoundPlaying(healthLowChannel))
+        if(!isSoundPlayingInChannel(healthLowChannel))
         {
-            playSound(healthLowChannel, 356 * 2, randomRange(80, 100) / 100.0f * 0.6, 0.1f, 0.5f, 0.5f, 0);
+            float volume = randomRange(80, 100) / 100.0f * 0.6;
+            playSound(healthLowSound, healthLowChannel, 356 * 2, volume, 0.1f, 0.5f, 0.5f, 0);
         }        
     }
     else if(alarmFactor > 0)
     {
         if(lastHealth > playerHealth)
         {
-            if(!isSoundPlaying(healthHighChannel))
+            if(!isSoundPlayingInChannel(healthHighChannel))
             {
-                playSound(healthHighChannel, 500, randomRange(90, 100) / 100.0f * alarmFactor * 0.4, 0.1f, 0.1f, 0.2f, 0);
+                float volume = randomRange(90, 100) / 100.0f * alarmFactor * 0.4;
+                playSound(healthHighSound, healthHighChannel, 500, randomRange(90, 100) / 100.0f * alarmFactor * 0.4, 0.1f, 0.1f, 0.2f, 0);
             }
             
-            if(!isSoundPlaying(healthLowChannel))
+            if(!isSoundPlayingInChannel(healthLowChannel))
             {
-                playSound(healthLowChannel, 356, randomRange(90, 100) / 100.0f * alarmFactor * 0.4, 0.1f, 0.1f, 0.2f, 0);
+                float volume = randomRange(90, 100) / 100.0f * alarmFactor * 0.4;
+                playSound(healthLowSound, healthLowChannel, 356, volume, 0.1f, 0.1f, 0.2f, 0);
             }            
         }
         
