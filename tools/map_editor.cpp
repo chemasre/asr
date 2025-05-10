@@ -280,8 +280,6 @@ float commandHighlightedTimer;
 int commandHighlighted;
 int commandHighlightedError;
 
-
-
 void drawUI()
 {
     drawWindow(ITEM_TYPE_POSITION_X - 1, ITEM_TYPE_POSITION_Y - 3, ITEM_TYPE_WIDTH + 2, ITEM_TYPE_HEIGHT + 4, "TYPE", MAKE_COLOR(255, 255, 0));

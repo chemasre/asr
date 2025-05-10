@@ -4,6 +4,8 @@
 #include <common_header.hpp>
 #include <common_system_header.hpp>
 
+#define SAMPLE_RATE (44100)
+
 #define MAX_CHANNELS 32
 #define MAX_SOUNDS 64
 
@@ -37,6 +39,8 @@ struct ChannelProperties
 	float volume;
 
 };
+
+void setSoundCallbackFunction(int (*f)(const void *, void *, unsigned long, unsigned long, void *));
 
 void muteChannel(int index);
 void unmuteChannel(int index);

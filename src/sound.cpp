@@ -2,7 +2,6 @@
 #include <player.hpp>
 #include <portaudio.h>
 
-#define SAMPLE_RATE   (44100)
 #define SAMPLE_DELTA_TIME (1.0f / SAMPLE_RATE)
 #define SAMPLES_PER_CALLBACK (64)
 
@@ -81,8 +80,15 @@ Channel channels[MAX_CHANNELS];
 Generator generators[MAX_CHANNELS];
 Sound sounds[MAX_SOUNDS];
 
+int (*soundCallbackFunction)(const void *, void *, unsigned long, unsigned long, void *);
+
 static SoundData soundCallbackData;
 float soundCallbackTimer;
+
+void setSoundCallbackFunction(int (*f)(const void *, void *, unsigned long, unsigned long, void *))
+{
+    soundCallbackFunction = f;
+}
 
 static int soundCallback( const void *input, void *output, unsigned long samplesPerCallback,
                           const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
@@ -109,6 +115,11 @@ static int soundCallback( const void *input, void *output, unsigned long samples
     
     for(int k = 0; k < samplesPerCallback; k++ )
     {
+        if(soundCallbackFunction != 0)
+        {
+            (*soundCallbackFunction)(input, output, (unsigned long)k, samplesPerCallback, callbackData);
+        }        
+        
         for(int s = 0; s < MAX_SOUNDS; s++)
         {
             if(sounds[s].reserved)
@@ -535,6 +546,8 @@ int isSoundGoingFrequency(int index)
 
 void initSound()
 {
+    soundCallbackFunction = 0;
+
     soundCallbackData.leftOutput = 0.0f;
     soundCallbackData.rightOutput = 0.0f;
     
@@ -573,7 +586,7 @@ void initSound()
     soundError = Pa_Initialize();   
     
     ASSERT(soundError == paNoError,"Initialize audio error")
-
+    
     soundError = Pa_OpenDefaultStream( &stream, 0, 2, paFloat32, SAMPLE_RATE, SAMPLES_PER_CALLBACK, soundCallback, &soundCallbackData );
                                 
     ASSERT(soundError == paNoError,"Open audio stream error")

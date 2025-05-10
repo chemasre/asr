@@ -117,10 +117,9 @@
 #define COMMAND_CUT 5
 #define COMMAND_PASTE 6
 #define COMMAND_CLEAR 7
-#define COMMAND_MIRROR_X 8
-#define COMMAND_MIRROR_Y 9
-#define COMMAND_PLAY 10
-#define COMMAND_STOP 11
+#define COMMAND_SHIFT_UP 8
+#define COMMAND_SHIFT_DOWN 9
+#define COMMAND_PLAY_OR_STOP 10
 
 #define COMMAND_HIGHLIGHT_TIME (0.5f)
 
@@ -131,7 +130,7 @@
 #define COMMANDS1_POSITION_X 3
 #define COMMANDS1_POSITION_Y (MODES_POSITION_Y + MODES_HEIGHT + 5)
 
-#define COMMANDS2_COUNT 8
+#define COMMANDS2_COUNT 7
 
 #define COMMANDS2_WIDTH 12
 #define COMMANDS2_HEIGHT COMMANDS2_COUNT
@@ -355,6 +354,66 @@ int getOctave(float frequency)
 	
 	return octave;
 }
+
+int soundEditorCallback( const void *input, void *output, unsigned long sampleIndex, unsigned long totalSamples, void *callbackData )
+{    
+    int isPlayState = (playState == PLAYSTATE_PLAYING);
+    
+    if(isPlayState)
+    {
+        int bps = (selectedTempo + 1);
+        playTimer += (1.0f / SAMPLE_RATE);
+        
+        while(playTimer >= 1.0f / bps)
+        {
+            for(int c = 0; c < soundAreaWidth; c++)
+            {
+                if(soundCells[selectedSlot][selectedRow][c].frequency > 0)
+                {
+                    SoundProperties* p = &soundCells[selectedSlot][selectedRow][c];
+                    
+                    playSound(playSounds[c], playChannels[c], p->frequency, p->volume, p->attackDuration * 1.0f/bps, p->sustainDuration * 1.0f/bps, p->decayDuration * 1.0f/bps, 0);
+
+                    // char message[100];
+                    // sprintf(message, "S %d C %d f%f v%f at%f st%f dt%f", playSounds[c], playChannels[c], p->frequency, p->volume, p->attackDuration * 1.0f/bps, p->sustainDuration * 1.0f/bps, p->decayDuration * 1.0f/bps);
+                    // logMessage(message);
+                }
+
+            }
+            
+            selectedRow ++;
+            
+            int rangeStart = songRanges[selectedSlot * 2 + 0];
+            int rangeCount = songRanges[selectedSlot * 2 + 1];
+            int rangeEnd = rangeStart + rangeCount - 1;
+            int rangeStartPage = rangeStart / soundAreaHeight;
+            int rangeStartRow = rangeStart % soundAreaHeight;
+            int rangeEndPage = rangeEnd / soundAreaHeight;
+            int rangeEndRow = rangeEnd % soundAreaHeight;
+
+            
+            if(selectedRow >= soundAreaHeight)
+            {
+                selectedRow = 0;
+                selectedRowPage ++;
+            }
+                
+            if(selectedRowPage >= ROW_PAGES_COUNT ||
+               selectedRowPage > rangeEndPage ||
+               selectedRowPage == rangeEndPage && selectedRow > rangeEndRow)
+            {
+                selectedRowPage = rangeStartPage;
+                selectedRow = rangeStartRow;
+            }
+            
+            playTimer -= 1.0f / bps;
+        }
+    }
+
+    
+    return 0;
+}
+
 
 void drawUI()
 {
@@ -597,8 +656,9 @@ void drawUI()
     int highlightCut = highlight && (commandHighlighted == COMMAND_CUT);
     int highlightPaste = highlight && (commandHighlighted == COMMAND_PASTE);
     int highlightClear = highlight && (commandHighlighted == COMMAND_CLEAR);
-    int highlightMirrorX = highlight && (commandHighlighted == COMMAND_MIRROR_X);
-    int highlightMirrorY = highlight && (commandHighlighted == COMMAND_MIRROR_Y);
+    int highlightShiftUp = highlight && (commandHighlighted == COMMAND_SHIFT_UP);
+    int highlightShiftDown = highlight && (commandHighlighted == COMMAND_SHIFT_DOWN);
+    int highlightPlayOrStop = highlight && (commandHighlighted == COMMAND_PLAY_OR_STOP);
 	
     int highlightColor = commandHighlightedError ? COLOR_ERROR : COLOR_SELECTED; 
     
@@ -622,12 +682,12 @@ void drawUI()
     drawString(highlightPaste ? highlightColor : COLOR_UNSELECTED, "PASTE", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 2);
     drawString(COLOR_SELECTED, " C", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 3);
     drawString(highlightClear ? highlightColor : COLOR_UNSELECTED, "CLEAR", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 3);
-    drawString(COLOR_SELECTED, " X", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 4);
-    drawString(highlightMirrorX ? highlightColor : COLOR_UNSELECTED, "MIRRX", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 4);
-    drawString(COLOR_SELECTED, " Y", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 5);
-    drawString(highlightMirrorY ? highlightColor : COLOR_UNSELECTED, "MIRRY", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 5);
+    drawString(COLOR_SELECTED, " CT+U", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 4);
+    drawString(highlightShiftUp ? highlightColor : COLOR_UNSELECTED, "TUNEU", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 4);
+    drawString(COLOR_SELECTED, " CT+D", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 5);
+    drawString(highlightShiftDown ? highlightColor : COLOR_UNSELECTED, "TUNED", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 5);
     drawString(COLOR_SELECTED, " SPC", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 6);
-    drawString(highlightMirrorY ? highlightColor : COLOR_UNSELECTED, !isPlayState ? "PLAY" : "STOP", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 6);
+    drawString(highlightPlayOrStop ? highlightColor : COLOR_UNSELECTED, !isPlayState ? "PLAY" : "STOP", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 6);
 
 }
 
@@ -919,6 +979,8 @@ int main(int argc, char* argv[])
         tryLoadSound(i);
     }
         
+    setSoundCallbackFunction(&soundEditorCallback);
+
     while(!quit)
     {
         int cursorWindowX;
@@ -928,58 +990,7 @@ int main(int argc, char* argv[])
         cursorCellX = cursorWindowX / fontWidth;
         cursorCellY = cursorWindowY / fontHeight;
 		
-		int isPlayState = (playState == PLAYSTATE_PLAYING);
-		
-		if(isPlayState)
-		{
-			int bps = (selectedTempo + 1);
-			playTimer += (1.0f / SCREEN_FPS);
-			
-			while(playTimer >= 1.0f / bps)
-			{
-				for(int c = 0; c < soundAreaWidth; c++)
-				{
-					if(soundCells[selectedSlot][selectedRow][c].frequency > 0)
-					{
-						SoundProperties* p = &soundCells[selectedSlot][selectedRow][c];
-						
-						playSound(playSounds[c], playChannels[c], p->frequency, p->volume, p->attackDuration * 1.0f/bps, p->sustainDuration * 1.0f/bps, p->decayDuration * 1.0f/bps, 0);
-
-						// char message[100];
-						// sprintf(message, "S %d C %d f%f v%f at%f st%f dt%f", playSounds[c], playChannels[c], p->frequency, p->volume, p->attackDuration * 1.0f/bps, p->sustainDuration * 1.0f/bps, p->decayDuration * 1.0f/bps);
-						// logMessage(message);
-					}
-
-				}
-				
-				selectedRow ++;
-				
-				int rangeStart = songRanges[selectedSlot * 2 + 0];
-				int rangeCount = songRanges[selectedSlot * 2 + 1];
-				int rangeEnd = rangeStart + rangeCount - 1;
-				int rangeStartPage = rangeStart / soundAreaHeight;
-				int rangeStartRow = rangeStart % soundAreaHeight;
-				int rangeEndPage = rangeEnd / soundAreaHeight;
-				int rangeEndRow = rangeEnd % soundAreaHeight;
-
-				
-				if(selectedRow >= soundAreaHeight)
-				{
-					selectedRow = 0;
-					selectedRowPage ++;
-				}
-					
-				if(selectedRowPage >= ROW_PAGES_COUNT ||
-				   selectedRowPage > rangeEndPage ||
-				   selectedRowPage == rangeEndPage && selectedRow > rangeEndRow)
-				{
-					selectedRowPage = rangeStartPage;
-					selectedRow = rangeStartRow;
-				}
-				
-				playTimer -= 1.0f / bps;
-			}
-		}
+        int isPlayState = (playState == PLAYSTATE_PLAYING);
 			
 		int frequencyModeEnabled = (selectedMode == MODE_FREQUENCY || selectedMode == MODE_ALL);
 		int volumeModeEnabled = (selectedMode == MODE_VOLUME || selectedMode == MODE_ALL);
@@ -1196,54 +1207,94 @@ int main(int argc, char* argv[])
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
 				
 		}
-		else if(isKeyDown(KEY_X) || isKeyDown(KEY_Y))
+		else if(isKeyPressed(KEY_CONTROL) && (isKeyDown(KEY_U) || isKeyDown(KEY_D)))
 		{
-			int isMirrorX = isKeyPressed(KEY_X);
-			int mirrorWidth = isMirrorX ? selectionWidth / 2 : selectionWidth;
-			int mirrorHeight = isMirrorX ? selectionHeight : selectionHeight / 2;
+			int isUp = isKeyPressed(KEY_U);
 	
-			for(int y = 0; y < mirrorHeight; y ++)
+			for(int y = selectionPosY; y < selectionHeight; y ++)
 			{
-				for(int x = 0; x < mirrorWidth; x++)
+				for(int x = selectionPosX; x < selectionWidth; x++)
 				{
-					int sourceX = isMirrorX ? selectionPosX + selectionWidth - 1 - x : selectionPosX + x;
-					int sourceY = isMirrorX ? selectionPosY + y : selectionPosY + selectionHeight - 1 - y;
-					
-					float sf = soundCells[selectedSlot][sourceY][sourceX].frequency;
-					float sv = soundCells[selectedSlot][sourceY][sourceX].volume;
-					float sat = soundCells[selectedSlot][sourceY][sourceX].attackDuration;
-					float sst = soundCells[selectedSlot][sourceY][sourceX].sustainDuration;
-					float sdt = soundCells[selectedSlot][sourceY][sourceX].decayDuration;
-					
-					int targetX = selectionPosX + x;
-					int targetY = selectionPosY + y;
-
-					float tf = soundCells[selectedSlot][targetY][targetX].frequency;
-					float tv = soundCells[selectedSlot][targetY][targetX].volume;
-					float tat = soundCells[selectedSlot][targetY][targetX].attackDuration;
-					float tst = soundCells[selectedSlot][targetY][targetX].sustainDuration;
-					float tdt = soundCells[selectedSlot][targetY][targetX].decayDuration;
-
-					if(frequencyModeEnabled)
+					if(frequencyModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
 					{
-						soundCells[selectedSlot][sourceY][sourceX].frequency = tf;
+						int note   = getNote(soundCells[selectedSlot][y][x].frequency);
+						int octave = getOctave(soundCells[selectedSlot][y][x].frequency);
+                            
+                        if(isUp)
+                        {
+                            note ++;
+                            if(note >= NOTES_COUNT)
+                            {
+                                octave ++;
+                                
+                                if(octave >= OCTAVES_COUNT)
+                                {                                    
+                                    note = NOTES_COUNT - 1;
+                                    octave = OCTAVES_COUNT - 1;
+                                }
+                                else
+                                {
+                                    note = 0;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            note --;
+                            
+                            if(note < 0)
+                            {
+                                octave --;
+                                
+                                if(octave < 0)
+                                {
+                                    note = 0;
+                                    octave = 0;
+                                }
+                                else
+                                {
+                                    note = NOTES_COUNT - 1;
+                                }
+                            }
+
+                        }
+                        
+                        soundCells[selectedSlot][y][x].frequency = getFrequency(octave, note);
 					}
 					
 					if(volumeModeEnabled)
 					{
-						soundCells[selectedSlot][sourceY][sourceX].volume = tv;
+						int l = getVolumeLevel(soundCells[selectedSlot][y][x].volume);
+                        if(isUp) { l++; if(l >= VOLUME_COUNT) { l = VOLUME_COUNT - 1; } }
+                        else { l--; if(l < 0) { l = 0; } }
+                        
+                        soundCells[selectedSlot][y][x].volume = getVolume(l);
+                        
 					}
 					
 					if(timeModeEnabled)
 					{
-						soundCells[selectedSlot][sourceY][sourceX].attackDuration = tat;
-						soundCells[selectedSlot][sourceY][sourceX].sustainDuration = tst;
-						soundCells[selectedSlot][sourceY][sourceX].decayDuration = tdt;
+						int al = getTimePropertyLevel(soundCells[selectedSlot][y][x].attackDuration);
+						int sl = getTimePropertyLevel(soundCells[selectedSlot][y][x].sustainDuration);
+						int dl = getTimePropertyLevel(soundCells[selectedSlot][y][x].decayDuration);
+                        
+                        if(isUp) { al++; if(al >= TIME_PROPERTY_VALUES_COUNT) { al = TIME_PROPERTY_VALUES_COUNT - 1; } }
+                        else { al--; if(al < 0) { al = 0; } }                        
+                        
+                        if(isUp) { sl++; if(sl >= TIME_PROPERTY_VALUES_COUNT) { sl = TIME_PROPERTY_VALUES_COUNT - 1; } }
+                        else { sl--; if(sl < 0) { sl = 0; } }                        
+
+                        if(isUp) { dl++; if(dl >= TIME_PROPERTY_VALUES_COUNT) { dl = TIME_PROPERTY_VALUES_COUNT - 1; } }
+                        else { dl--; if(dl < 0) { dl = 0; } }                        
+                        
+                        soundCells[selectedSlot][y][x].attackDuration = getTimeProperty(al);
+                        soundCells[selectedSlot][y][x].sustainDuration = getTimeProperty(sl);
+                        soundCells[selectedSlot][y][x].decayDuration = getTimeProperty(dl);
 					}
 				}
 			}					
 
-            commandHighlighted = isMirrorX ? COMMAND_MIRROR_X : COMMAND_MIRROR_Y;
+            commandHighlighted = isUp ? COMMAND_SHIFT_UP : COMMAND_SHIFT_DOWN;
             commandHighlightedError = 0;
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
 		}
@@ -1312,6 +1363,7 @@ int main(int argc, char* argv[])
 				selectedRow = playStartRow;
 				selectedRowPage = playStartRowPage;
 			}
+
 		}
         
         int mouseLeftPressed = isKeyPressed(MOUSE_LEFT) ? 1 : 0;
