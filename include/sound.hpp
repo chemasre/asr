@@ -10,6 +10,33 @@
 #define GENERATOR_TYPE_TONE 0
 #define GENERATOR_TYPE_NOISE 1
 
+struct SongProperties
+{
+	int numChannels;
+	float rowsPerSecond;
+	
+	int startRow;
+	int numRows;
+
+};
+
+struct SoundProperties
+{
+	float frequency;
+	float volume;
+	
+	float attackDuration;
+	float sustainDuration;
+	float decayDuration;
+		
+};
+
+struct ChannelProperties
+{
+	int type;
+	float volume;
+
+};
 
 void muteChannel(int index);
 void unmuteChannel(int index);

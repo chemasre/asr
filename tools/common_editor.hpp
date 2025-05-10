@@ -9,6 +9,7 @@
 #include <ui.hpp>
 #include <sprites.hpp>
 #include <system.hpp>
+#include <log.hpp>
 
 #define TITLE_STRING_SIZE 80
 #define TITLE_STRING_PATTERN "%s v%d.%d.%d by %s"

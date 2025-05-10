@@ -411,7 +411,19 @@ void playSound(int sound, int channel, float frequency, float volume, float atta
     ASSERT(sound >= 0 && sound < MAX_SOUNDS, "playSound: Sound is out of range") 
     ASSERT(sounds[sound].reserved, "playSound: Sound is not reserved") 
     ASSERT(channel >= 0 && channel < MAX_CHANNELS, "playSound: Channel is out of range") 
-    ASSERT(channels[channel].reserved, "playSound: Channel is not reserved") 
+    ASSERT(channels[channel].reserved, "playSound: Channel is not reserved")
+	
+	if(channels[channel].playingSound)
+	{
+		for(int i = 0; i < MAX_SOUNDS; i++)
+		{
+			if(sounds[i].channel == channel)
+			{
+				sounds[i].playState = SOUND_STATE_STOPPED;
+			}
+		}
+		
+	}
     
     sounds[sound].playState = SOUND_STATE_PLAYING;
     sounds[sound].channel = channel;
