@@ -142,6 +142,8 @@ void main()
     appendInfoLine("                            ");
     appendInfoLine("IF YOU ARE BRAVE");
     appendInfoLine("                            ");
+    appendInfoLine("BEST VIEWED IN COURIER NEW 16 PT");
+    appendInfoLine("                            ");
     appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
     appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");
     appendInfoLine("ALL WORK AND NO PLAY MAKES JACK A DULL BOY. ");

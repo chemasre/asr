@@ -1,7 +1,6 @@
 #include "sound_editor.hpp"
 #include "editor_utils.hpp"
 #include "sound.hpp"
-#include "log.hpp"
 
 #define CELLS_WIDTH 80
 #define CELLS_HEIGHT 44
@@ -862,7 +861,7 @@ int main(int argc, char* argv[])
     initUI();
     initMenu();
 	initLog();
-	
+    
 	soundAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 	soundAreaPosY = 6;
 	soundAreaWidth = 16;
@@ -983,6 +982,8 @@ int main(int argc, char* argv[])
 
     while(!quit)
     {
+        updateInput();
+        
         int cursorWindowX;
         int cursorWindowY;
         getMousePosition(&cursorWindowX, &cursorWindowY);
@@ -1406,7 +1407,7 @@ int main(int argc, char* argv[])
                         soundRowPagesPosX, soundRowPagesPosY,
                         soundRowPagesWidth, soundRowPagesHeight) && !isPlayState)
         {
-            if(mouseLeftDown)
+            if(mouseLeftPressed)
             {
                 if((cursorCellX - soundRowPagesPosX) % 2 == 0)
 				{
@@ -1422,7 +1423,7 @@ int main(int argc, char* argv[])
                         soundRowsPosX, soundRowsPosY,
                         soundRowsWidth, soundRowsHeight))
         {
-            if(mouseLeftDown)
+            if(mouseLeftPressed)
             {
 				selectedRow = cursorCellY - soundRowsPosY;
             }
