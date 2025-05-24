@@ -136,11 +136,25 @@
 #define COMMANDS2_POSITION_X 3
 #define COMMANDS2_POSITION_Y (COMMANDS1_POSITION_Y + COMMANDS1_HEIGHT + 5)
 
-#define SLOTS_COUNT 16
-#define SLOTS_WIDTH (SLOTS_COUNT * 2)
+#define SLOT_PER_PAGE_COUNT 16
+#define SLOT_PAGES_COUNT 16
+#define SLOT_DIGITS_COUNT 2
+#define SLOTS_COUNT (SLOT_PER_PAGE_COUNT * SLOT_PAGES_COUNT)
+
+#define SLOT_PREVIOUSPAGE_POSITION_X (2)
+#define SLOT_PREVIOUSPAGE_POSITION_Y (SLOTS_POSITION_Y)
+#define SLOT_CHANGEPAGE_WIDTH 3
+#define SLOT_CHANGEPAGE_HEIGHT 1
+
+#define SLOTS_WIDTH (SLOT_PER_PAGE_COUNT * 3)
 #define SLOTS_HEIGHT 1
-#define SLOTS_POSITION_X (TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5)
+#define SLOTS_POSITION_X (SLOT_PREVIOUSPAGE_POSITION_X + SLOT_CHANGEPAGE_WIDTH + 1)
 #define SLOTS_POSITION_Y (CELLS_HEIGHT - SLOTS_HEIGHT - 1)
+
+#define SLOT_NEXTPAGE_POSITION_X (SLOTS_POSITION_X + SLOTS_WIDTH + 1)
+#define SLOT_NEXTPAGE_POSITION_Y (SLOTS_POSITION_Y)
+
+
 
 #define PLAYSTATE_STOPPED 0
 #define PLAYSTATE_PLAYING 1
@@ -154,7 +168,9 @@ int cursorCellY;
 int selectedTool;
 int selectedMode;
 
+
 int selectedSlot;
+int selectedSlotPage;
 int selectedNote;
 int selectedOctave;
 int selectedVolumeLevel;
@@ -443,10 +459,15 @@ void drawUI()
 
 	fillScreenArea(soundAreaPosX + soundAreaWidth, soundAreaPosY, 1, soundAreaHeight, MAKE_COLOR(255,255,0), '|');
 
-    drawWindow(SLOTS_POSITION_X - 1, SLOTS_POSITION_Y - 1, SLOTS_WIDTH + 2, SLOTS_HEIGHT + 2, NULL, MAKE_COLOR(255, 255, 0));
-    
-    drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
+    drawWindow(SLOT_PREVIOUSPAGE_POSITION_X - 1, SLOT_PREVIOUSPAGE_POSITION_Y - 1, SLOT_CHANGEPAGE_WIDTH * 2 + SLOTS_WIDTH + 4, SLOTS_HEIGHT + 2, NULL, MAKE_COLOR(255, 255, 0));
 
+	setScreenCell(SLOT_PREVIOUSPAGE_POSITION_X + SLOT_CHANGEPAGE_WIDTH, SLOT_PREVIOUSPAGE_POSITION_Y, MAKE_COLOR(255,255,0), '|');
+	setScreenCell(SLOT_NEXTPAGE_POSITION_X - 1, SLOT_NEXTPAGE_POSITION_Y, MAKE_COLOR(255,255,0), '|');
+    
+	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " < ", SLOT_PREVIOUSPAGE_POSITION_X, SLOT_PREVIOUSPAGE_POSITION_Y);
+	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " > ", SLOT_NEXTPAGE_POSITION_X, SLOT_NEXTPAGE_POSITION_Y);
+
+    drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
     drawWindow(MODES_POSITION_X - 1, MODES_POSITION_Y - 3, MODES_WIDTH + 2, MODES_HEIGHT + 4, "MODES", MAKE_COLOR(255, 255, 0));    
 
     drawWindow(COMMANDS1_POSITION_X - 1, COMMANDS1_POSITION_Y - 3, COMMANDS1_WIDTH + 2, COMMANDS1_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
@@ -627,13 +648,24 @@ void drawUI()
 		}
 	}
 
-    for(int x = 0; x < SLOTS_COUNT; x ++)
+    for(int x = 0; x < SLOT_PER_PAGE_COUNT; x ++)
     {
+        int slot = x + SLOT_PER_PAGE_COUNT * selectedSlotPage;
+        
         int color;
-        if(x == selectedSlot) { color = COLOR_SELECTED; }
-        else { color = COLOR_UNSELECTED; }             
+        if(slot == selectedSlot) { color = COLOR_SELECTED; }
+        else { color = COLOR_UNSELECTED; }   
+        
+        int number = slot;
 
-        setScreenCell(SLOTS_POSITION_X + x * 2, SLOTS_POSITION_Y, color, x <= 9 ? '0' + x : 'A' + x - 10);
+        for(int d = 0; d < SLOT_DIGITS_COUNT; d ++)
+        {
+            int digit = number % 16;
+			number = number / 16;
+            
+            setScreenCell(SLOTS_POSITION_X + x * (SLOT_DIGITS_COUNT + 1) + (SLOT_DIGITS_COUNT - d - 1), SLOTS_POSITION_Y, color, hexaCharacters[digit]);
+        }
+
     }
     
     drawString(selectedTool == TOOL_SELECT ? COLOR_SELECTED : COLOR_UNSELECTED, " SELECT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
@@ -898,6 +930,7 @@ int main(int argc, char* argv[])
     selectedMode = MODE_ALL;
     
     selectedSlot = 0;
+    selectedSlotPage = 0;
     selectedNote = 0;
     selectedOctave = 4;
     selectedVolumeLevel = VOLUME_COUNT - 1;
@@ -1404,6 +1437,28 @@ int main(int argc, char* argv[])
 			}
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
+                        SLOT_PREVIOUSPAGE_POSITION_X, SLOT_PREVIOUSPAGE_POSITION_Y,
+                        SLOT_CHANGEPAGE_WIDTH, SLOT_CHANGEPAGE_HEIGHT) && !isPlayState)
+        {
+            if(mouseLeftPressed)
+            {
+                if(selectedSlotPage > 0) { selectedSlotPage --; }
+
+                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (selectedSlot % SLOT_PER_PAGE_COUNT);
+            }
+        }        
+        else if(isInsideRect(cursorCellX, cursorCellY,
+                        SLOT_NEXTPAGE_POSITION_X, SLOT_NEXTPAGE_POSITION_Y,
+                        SLOT_CHANGEPAGE_WIDTH, SLOT_CHANGEPAGE_HEIGHT) && !isPlayState)
+        {
+            if(mouseLeftPressed)
+            {
+                if(selectedSlotPage < SLOT_PAGES_COUNT - 1) { selectedSlotPage ++; }
+                
+                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (selectedSlot % SLOT_PER_PAGE_COUNT);
+            }
+        }        
+        else if(isInsideRect(cursorCellX, cursorCellY,
                         soundRowPagesPosX, soundRowPagesPosY,
                         soundRowPagesWidth, soundRowPagesHeight) && !isPlayState)
         {
@@ -1604,7 +1659,7 @@ int main(int argc, char* argv[])
         {
             if(mouseLeftPressed)
             {            
-                selectedSlot = (cursorCellX - SLOTS_POSITION_X) / 2;
+                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (cursorCellX - SLOTS_POSITION_X) / (SLOT_DIGITS_COUNT + 1); 
             }            
         }        
         else if(isInsideRect(cursorCellX, cursorCellY,
