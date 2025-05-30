@@ -1,13 +1,9 @@
 #include "sprite_editor.hpp"
-#include "editor_utils.hpp"
-
-#define CELLS_WIDTH 73
-#define CELLS_HEIGHT 40
 
 #define COLOR_OPAQUE MAKE_COLOR(255,0,0)
 #define COLOR_BOUNDS MAKE_COLOR(0,255,255)
 
-#define SPRITE_FILE_PATTERN "sprite%02d.spr"
+#define SPRITE_FILE_PATTERN "sprite%03d.spr"
 
 #define ASCII_FIRST 32
 #define ASCII_COUNT 95
@@ -15,22 +11,22 @@
 #define ASCII_PALETTE_WIDTH 12
 #define ASCII_PALETTE_HEIGHT (ASCII_COUNT / ASCII_PALETTE_WIDTH + 1)
 
-#define ASCII_PALETTE_POSITION_X (CELLS_WIDTH - ASCII_PALETTE_WIDTH - 2)
+#define ASCII_PALETTE_POSITION_X (cellsWidth - ASCII_PALETTE_WIDTH - 2)
 #define ASCII_PALETTE_POSITION_Y 4
 
 #define COLOR_PALETTE1_WIDTH 12
 #define COLOR_PALETTE1_HEIGHT 12
 
-#define COLOR_PALETTE1_POSITION_X (CELLS_WIDTH - COLOR_PALETTE1_WIDTH - 2)
+#define COLOR_PALETTE1_POSITION_X (cellsWidth - COLOR_PALETTE1_WIDTH - 2)
 #define COLOR_PALETTE1_POSITION_Y (ASCII_PALETTE_POSITION_Y + ASCII_PALETTE_HEIGHT + 2 + 2)
 
-#define COLOR_PALETTE2_POSITION_X (CELLS_WIDTH - COLOR_PALETTE2_WIDTH - 2)
+#define COLOR_PALETTE2_POSITION_X (cellsWidth - COLOR_PALETTE2_WIDTH - 2)
 #define COLOR_PALETTE2_POSITION_Y (COLOR_PALETTE1_POSITION_Y + COLOR_PALETTE1_HEIGHT + 2 + 2)
 
 #define COLOR_PALETTE2_WIDTH 12
 #define COLOR_PALETTE2_HEIGHT 1
 
-#define OPAQUE_POSITION_X (CELLS_WIDTH - OPAQUE_WIDTH - 2)
+#define OPAQUE_POSITION_X (cellsWidth - OPAQUE_WIDTH - 2)
 #define OPAQUE_POSITION_Y (COLOR_PALETTE2_POSITION_Y  + COLOR_PALETTE2_HEIGHT + 2 + 2)
 
 #define OPAQUE_WIDTH 12
@@ -86,21 +82,9 @@
 #define COMMANDS2_POSITION_X 3
 #define COMMANDS2_POSITION_Y (COMMANDS1_POSITION_Y + COMMANDS1_HEIGHT + 5)
 
-#define SLOTS_COUNT 16
-#define SLOTS_WIDTH (SLOTS_COUNT * 2)
-#define SLOTS_HEIGHT 1
-#define SLOTS_POSITION_X (TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5)
-#define SLOTS_POSITION_Y (CELLS_HEIGHT - SLOTS_HEIGHT - 1)
-
-char cursorChar;
-int cursorColor;
-int cursorCellX;
-int cursorCellY;
-
 int selectedTool;
 int selectedMode;
 
-int selectedSlot;
 int selectedRedLevel;
 int selectedGreenLevel;
 int selectedBlueLevel;
@@ -148,8 +132,6 @@ void drawUI()
 
     drawWindow(drawAreaPosX - 1, drawAreaPosY - 3, drawAreaWidth + 2, drawAreaHeight + 4, "SPRITE", MAKE_COLOR(255, 255, 0)); 
 
-    drawWindow(SLOTS_POSITION_X - 1, SLOTS_POSITION_Y - 1, SLOTS_WIDTH + 2, SLOTS_HEIGHT + 2, NULL, MAKE_COLOR(255, 255, 0));
-    
     drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
 
     drawWindow(MODES_POSITION_X - 1, MODES_POSITION_Y - 3, MODES_WIDTH + 2, MODES_HEIGHT + 4, "MODES", MAKE_COLOR(255, 255, 0));    
@@ -218,15 +200,8 @@ void drawUI()
         }
     }
 
-    for(int x = 0; x < SLOTS_COUNT; x ++)
-    {
-        int color;
-        if(x == selectedSlot) { color = COLOR_SELECTED; }
-        else { color = COLOR_UNSELECTED; }             
+    baseEditorDraw();
 
-        setScreenCell(SLOTS_POSITION_X + x * 2, SLOTS_POSITION_Y, color, x <= 9 ? '0' + x : 'A' + x - 10);
-    }
-    
     drawString(selectedTool == TOOL_SELECT ? COLOR_SELECTED : COLOR_UNSELECTED, " SELECT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
     drawString(selectedTool == TOOL_DRAW ? COLOR_SELECTED : COLOR_UNSELECTED, " DRAW", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
     drawString(selectedTool == TOOL_PICK ? COLOR_SELECTED : COLOR_UNSELECTED, " PICK", TOOLS_POSITION_X, TOOLS_POSITION_Y + 2);
@@ -459,18 +434,15 @@ int main(int argc, char* argv[])
     initUI();
     initMenu();
 	
-	
+	baseEditorInit(73, 43);
 	
 	char titleString[TITLE_STRING_SIZE];
 	sprintf(titleString, TITLE_STRING_PATTERN, "Sprite Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
     setScreenTitle(titleString);
     
-    resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
+    resizeScreen(cellsWidth * fontWidth, cellsHeight * fontHeight);
     
     int quit = 0;
-    
-    cursorChar = 'O';
-    cursorColor = MAKE_COLOR(255, 255, 255);
     
     selectedTool = TOOL_DRAW;
     selectedMode = MODE_ALL;
@@ -543,30 +515,12 @@ int main(int argc, char* argv[])
         
     while(!quit)
     {
-        int cursorWindowX;
-        int cursorWindowY;
-        getMousePosition(&cursorWindowX, &cursorWindowY);
+        updateInput();
+        baseEditorUpdate();
         
-        cursorCellX = cursorWindowX / fontWidth;
-        cursorCellY = cursorWindowY / fontHeight;
-		
 		int colorModeEnabled = (selectedMode == MODE_COLOR || selectedMode == MODE_ALL);
 		int characterModeEnabled = (selectedMode == MODE_CHAR || selectedMode == MODE_ALL);
 		int opacityModeEnabled = (selectedMode == MODE_OPACITY || selectedMode == MODE_ALL);
-		
-		if(!isKeyPressed(KEY_ALT))
-		{
-			if(isKeyDown(KEY_0)) { selectedSlot = 0; }
-			else if(isKeyDown(KEY_1)) { selectedSlot = 1; }
-			else if(isKeyDown(KEY_2)) { selectedSlot = 2; }
-			else if(isKeyDown(KEY_3)) { selectedSlot = 3; }
-			else if(isKeyDown(KEY_4)) { selectedSlot = 4; }
-			else if(isKeyDown(KEY_5)) { selectedSlot = 5; }
-			else if(isKeyDown(KEY_6)) { selectedSlot = 6; }
-			else if(isKeyDown(KEY_7)) { selectedSlot = 7; }
-			else if(isKeyDown(KEY_8)) { selectedSlot = 8; }
-			else if(isKeyDown(KEY_9)) { selectedSlot = 9; }
-		}
 		
         if(isKeyDown(KEY_ESC))
         {
@@ -871,12 +825,6 @@ int main(int argc, char* argv[])
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
 		}
         
-        int mouseLeftPressed = isKeyPressed(MOUSE_LEFT) ? 1 : 0;
-        int mouseRightPressed = isKeyPressed(MOUSE_RIGHT) ? 1 : 0;
-                
-        if(mouseLeftPressed) { cursorChar = 'X'; }
-        else { cursorChar = 'O'; }        
-
         if(isInsideRect(cursorCellX, cursorCellY,
             ASCII_PALETTE_POSITION_X, ASCII_PALETTE_POSITION_Y,
             ASCII_PALETTE_WIDTH, ASCII_PALETTE_HEIGHT))
@@ -1027,15 +975,6 @@ int main(int argc, char* argv[])
 
         } 
         else if(isInsideRect(cursorCellX, cursorCellY,
-                            SLOTS_POSITION_X, SLOTS_POSITION_Y,
-                            SLOTS_WIDTH, SLOTS_HEIGHT))
-        {
-            if(mouseLeftPressed)
-            {            
-                selectedSlot = (cursorCellX - SLOTS_POSITION_X) / 2;
-            }            
-        }        
-        else if(isInsideRect(cursorCellX, cursorCellY,
                             TOOLS_POSITION_X, TOOLS_POSITION_Y,
                             TOOLS_WIDTH, TOOLS_HEIGHT))
         {
@@ -1112,7 +1051,7 @@ int main(int argc, char* argv[])
                           drawAreaPosY + spritePivots[selectedSlot * 2 + 1], COLOR_BOUNDS, '+');
         }        
         
-        setScreenCell(cursorCellX, cursorCellY, cursorColor, cursorChar);
+        baseEditorDrawCursor();
         
         showScreen();
         

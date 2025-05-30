@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
+#include <resource.h>
 #include "cbmp/cbmp.h"
 
 #define UCHAR unsigned char
@@ -42,6 +44,12 @@ void inferOutputFileName()
 int main(int argc, char** argv)
 {
     if(argc <= 1) { printf("ERROR: The path of a 24 bit bmp is required"); exit(-1); }
+    
+    HINSTANCE instance = GetModuleHandle(NULL);
+    HICON hIcon = (HICON)LoadImage(instance, MAKEINTRESOURCE(MAINICON), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);    
+    HWND windowHandle = GetConsoleWindow();    
+    SendMessage(windowHandle, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    SendMessage(windowHandle, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);     
     
     inputFileName = argv[1];
     BMP* image = bopen(inputFileName);

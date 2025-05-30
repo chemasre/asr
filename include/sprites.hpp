@@ -8,7 +8,7 @@
 #define SPRITE_SIZE 32
 
 #define SPRITE_DIRECTORY "sprites"
-#define SPRITE_FILENAME_PATTERN "sprite%02d.spr"
+#define SPRITE_FILENAME_PATTERN "sprite%03d.spr"
 
 struct SpriteCell
 {

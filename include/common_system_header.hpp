@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include <winuser.h>
+#include <resource.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>

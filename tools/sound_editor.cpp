@@ -1,15 +1,11 @@
 #include "sound_editor.hpp"
-#include "editor_utils.hpp"
 #include "sound.hpp"
-
-#define CELLS_WIDTH 80
-#define CELLS_HEIGHT 44
 
 #define FREQUENCY_OPAQUE MAKE_COLOR(255,0,0)
 #define RANGES_COLOR_1 MAKE_COLOR(0,255,255)
 #define RANGES_COLOR_2 MAKE_COLOR(0,127,127)
 
-#define SOUND_FILE_PATTERN "sound%02d.snd"
+#define SOUND_FILE_PATTERN "sound%03d.snd"
 
 #define NOTES_COUNT 12
 #define OCTAVES_COUNT 9
@@ -19,10 +15,10 @@
 #define FREQUENCY_WIDTH NOTES_COUNT
 #define FREQUENCY_HEIGHT OCTAVES_COUNT
 
-#define FREQUENCY_POSITION_X (CELLS_WIDTH - FREQUENCY_WIDTH - 2)
+#define FREQUENCY_POSITION_X (cellsWidth - FREQUENCY_WIDTH - 2)
 #define FREQUENCY_POSITION_Y (4)
 
-#define VOLUME_POSITION_X (CELLS_WIDTH - VOLUME_WIDTH - 2)
+#define VOLUME_POSITION_X (cellsWidth - VOLUME_WIDTH - 2)
 #define VOLUME_POSITION_Y (FREQUENCY_POSITION_Y + FREQUENCY_HEIGHT + 2 + 2)
 
 #define VOLUME_COUNT 12
@@ -38,7 +34,7 @@
 
 #define TIME_PROPERTY_VALUES_COUNT 12
 
-#define TIME_POSITION_X (CELLS_WIDTH - CHANNELTYPE_WIDTH - 2)
+#define TIME_POSITION_X (cellsWidth - CHANNELTYPE_WIDTH - 2)
 #define TIME_POSITION_Y (VOLUME_POSITION_Y  + VOLUME_HEIGHT + 2 + 2)
 
 #define TIME_WIDTH TIME_PROPERTY_VALUES_COUNT
@@ -52,10 +48,10 @@
 #define CHANNELTYPE_WIDTH 12
 #define CHANNELTYPE_HEIGHT 1
 
-#define CHANNELTYPE_POSITION_X (CELLS_WIDTH - CHANNELTYPE_WIDTH - 2)
+#define CHANNELTYPE_POSITION_X (cellsWidth - CHANNELTYPE_WIDTH - 2)
 #define CHANNELTYPE_POSITION_Y (TIME_POSITION_Y  + TIME_HEIGHT + 2 + 2)
 
-#define CHANNELVOLUME_POSITION_X (CELLS_WIDTH - CHANNELVOLUME_WIDTH - 2)
+#define CHANNELVOLUME_POSITION_X (cellsWidth - CHANNELVOLUME_WIDTH - 2)
 #define CHANNELVOLUME_POSITION_Y (CHANNELTYPE_POSITION_Y + CHANNELTYPE_HEIGHT + 2 + 2)
 
 #define CHANNELVOLUME_COUNT 12
@@ -69,7 +65,7 @@
 
 #define METER_COUNT 3
 
-#define METER_POSITION_X (CELLS_WIDTH - METER_WIDTH - 2)
+#define METER_POSITION_X (cellsWidth - METER_WIDTH - 2)
 #define METER_POSITION_Y (CHANNELVOLUME_POSITION_Y + CHANNELVOLUME_HEIGHT + 2 + 2)
 
 #define METER_WIDTH 12
@@ -77,8 +73,8 @@
 
 #define TEMPO_COUNT 12
 
-#define TEMPO_POSITION_X (FREQUENCY_POSITION_X - 1 - TEMPO_WIDTH - 2)
-#define TEMPO_POSITION_Y (4)
+#define TEMPO_POSITION_X (cellsWidth - TEMPO_WIDTH - 2)
+#define TEMPO_POSITION_Y (METER_POSITION_Y + METER_HEIGHT + 2 + 2)
 
 #define TEMPO_WIDTH TEMPO_COUNT
 #define TEMPO_HEIGHT (1)
@@ -136,41 +132,14 @@
 #define COMMANDS2_POSITION_X 3
 #define COMMANDS2_POSITION_Y (COMMANDS1_POSITION_Y + COMMANDS1_HEIGHT + 5)
 
-#define SLOT_PER_PAGE_COUNT 16
-#define SLOT_PAGES_COUNT 16
-#define SLOT_DIGITS_COUNT 2
-#define SLOTS_COUNT (SLOT_PER_PAGE_COUNT * SLOT_PAGES_COUNT)
-
-#define SLOT_PREVIOUSPAGE_POSITION_X (2)
-#define SLOT_PREVIOUSPAGE_POSITION_Y (SLOTS_POSITION_Y)
-#define SLOT_CHANGEPAGE_WIDTH 3
-#define SLOT_CHANGEPAGE_HEIGHT 1
-
-#define SLOTS_WIDTH (SLOT_PER_PAGE_COUNT * 3)
-#define SLOTS_HEIGHT 1
-#define SLOTS_POSITION_X (SLOT_PREVIOUSPAGE_POSITION_X + SLOT_CHANGEPAGE_WIDTH + 1)
-#define SLOTS_POSITION_Y (CELLS_HEIGHT - SLOTS_HEIGHT - 1)
-
-#define SLOT_NEXTPAGE_POSITION_X (SLOTS_POSITION_X + SLOTS_WIDTH + 1)
-#define SLOT_NEXTPAGE_POSITION_Y (SLOTS_POSITION_Y)
-
-
-
 #define PLAYSTATE_STOPPED 0
 #define PLAYSTATE_PLAYING 1
 
 
-char cursorChar;
-int cursorColor;
-int cursorCellX;
-int cursorCellY;
 
 int selectedTool;
 int selectedMode;
 
-
-int selectedSlot;
-int selectedSlotPage;
 int selectedNote;
 int selectedOctave;
 int selectedVolumeLevel;
@@ -210,8 +179,6 @@ int soundRowPagesWidth;
 int soundRowPagesHeight;
 
 char noteCharacters[NOTES_COUNT] = { 'C', 'c', 'D', 'd', 'E', 'F', 'f', 'G', 'g', 'A', 'a', 'B' };
-char hexaCharacters[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 
 char workPath[MAX_PATH_LENGTH];
 
@@ -459,14 +426,8 @@ void drawUI()
 
 	fillScreenArea(soundAreaPosX + soundAreaWidth, soundAreaPosY, 1, soundAreaHeight, MAKE_COLOR(255,255,0), '|');
 
-    drawWindow(SLOT_PREVIOUSPAGE_POSITION_X - 1, SLOT_PREVIOUSPAGE_POSITION_Y - 1, SLOT_CHANGEPAGE_WIDTH * 2 + SLOTS_WIDTH + 4, SLOTS_HEIGHT + 2, NULL, MAKE_COLOR(255, 255, 0));
-
-	setScreenCell(SLOT_PREVIOUSPAGE_POSITION_X + SLOT_CHANGEPAGE_WIDTH, SLOT_PREVIOUSPAGE_POSITION_Y, MAKE_COLOR(255,255,0), '|');
-	setScreenCell(SLOT_NEXTPAGE_POSITION_X - 1, SLOT_NEXTPAGE_POSITION_Y, MAKE_COLOR(255,255,0), '|');
+    baseEditorDraw();
     
-	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " < ", SLOT_PREVIOUSPAGE_POSITION_X, SLOT_PREVIOUSPAGE_POSITION_Y);
-	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " > ", SLOT_NEXTPAGE_POSITION_X, SLOT_NEXTPAGE_POSITION_Y);
-
     drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
     drawWindow(MODES_POSITION_X - 1, MODES_POSITION_Y - 3, MODES_WIDTH + 2, MODES_HEIGHT + 4, "MODES", MAKE_COLOR(255, 255, 0));    
 
@@ -648,25 +609,7 @@ void drawUI()
 		}
 	}
 
-    for(int x = 0; x < SLOT_PER_PAGE_COUNT; x ++)
-    {
-        int slot = x + SLOT_PER_PAGE_COUNT * selectedSlotPage;
-        
-        int color;
-        if(slot == selectedSlot) { color = COLOR_SELECTED; }
-        else { color = COLOR_UNSELECTED; }   
-        
-        int number = slot;
-
-        for(int d = 0; d < SLOT_DIGITS_COUNT; d ++)
-        {
-            int digit = number % 16;
-			number = number / 16;
-            
-            setScreenCell(SLOTS_POSITION_X + x * (SLOT_DIGITS_COUNT + 1) + (SLOT_DIGITS_COUNT - d - 1), SLOTS_POSITION_Y, color, hexaCharacters[digit]);
-        }
-
-    }
+    baseEditorDraw();
     
     drawString(selectedTool == TOOL_SELECT ? COLOR_SELECTED : COLOR_UNSELECTED, " SELECT", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
     drawString(selectedTool == TOOL_SET ? COLOR_SELECTED : COLOR_UNSELECTED, " SET", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
@@ -894,6 +837,8 @@ int main(int argc, char* argv[])
     initMenu();
 	initLog();
     
+    baseEditorInit(62, 53);
+    
 	soundAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 	soundAreaPosY = 6;
 	soundAreaWidth = 16;
@@ -919,12 +864,9 @@ int main(int argc, char* argv[])
 	sprintf(titleString, TITLE_STRING_PATTERN, "Sound Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
     setScreenTitle(titleString);
     
-    resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
+    resizeScreen(cellsWidth * fontWidth, cellsHeight * fontHeight);
     
     int quit = 0;
-    
-    cursorChar = 'O';
-    cursorColor = MAKE_COLOR(255, 255, 255);
     
     selectedTool = TOOL_SET;
     selectedMode = MODE_ALL;
@@ -1015,34 +957,16 @@ int main(int argc, char* argv[])
 
     while(!quit)
     {
-        updateInput();
-        
-        int cursorWindowX;
-        int cursorWindowY;
-        getMousePosition(&cursorWindowX, &cursorWindowY);
-        
-        cursorCellX = cursorWindowX / fontWidth;
-        cursorCellY = cursorWindowY / fontHeight;
-		
         int isPlayState = (playState == PLAYSTATE_PLAYING);
+        slotSelectorEnabled = !isPlayState;
+        
+        updateInput();
+        baseEditorUpdate();
+        
 			
 		int frequencyModeEnabled = (selectedMode == MODE_FREQUENCY || selectedMode == MODE_ALL);
 		int volumeModeEnabled = (selectedMode == MODE_VOLUME || selectedMode == MODE_ALL);
 		int timeModeEnabled = (selectedMode == MODE_TIME || selectedMode == MODE_ALL);
-		
-		if(!isKeyPressed(KEY_ALT) && !isPlayState)
-		{
-			if(isKeyDown(KEY_0)) { selectedSlot = 0; }
-			else if(isKeyDown(KEY_1)) { selectedSlot = 1; }
-			else if(isKeyDown(KEY_2)) { selectedSlot = 2; }
-			else if(isKeyDown(KEY_3)) { selectedSlot = 3; }
-			else if(isKeyDown(KEY_4)) { selectedSlot = 4; }
-			else if(isKeyDown(KEY_5)) { selectedSlot = 5; }
-			else if(isKeyDown(KEY_6)) { selectedSlot = 6; }
-			else if(isKeyDown(KEY_7)) { selectedSlot = 7; }
-			else if(isKeyDown(KEY_8)) { selectedSlot = 8; }
-			else if(isKeyDown(KEY_9)) { selectedSlot = 9; }
-		}
 		
         if(isKeyDown(KEY_ESC))
         {
@@ -1400,12 +1324,7 @@ int main(int argc, char* argv[])
 
 		}
         
-        int mouseLeftPressed = isKeyPressed(MOUSE_LEFT) ? 1 : 0;
-        int mouseRightPressed = isKeyPressed(MOUSE_RIGHT) ? 1 : 0;
-		int mouseLeftDown = isKeyDown(MOUSE_LEFT) ? 1 : 0;
-                
-        if(mouseLeftPressed) { cursorChar = 'X'; }
-        else { cursorChar = 'O'; }        
+        baseEditorUpdate();
 
         if(isInsideRect(cursorCellX, cursorCellY,
                         VOLUME_POSITION_X, VOLUME_POSITION_Y,
@@ -1435,44 +1354,6 @@ int main(int argc, char* argv[])
 					selectedChannelVolume = getVolumeLevel(channelCells[selectedSlot][channel].volume);
 				}
 			}
-        }
-        else if(isInsideRect(cursorCellX, cursorCellY,
-                        SLOT_PREVIOUSPAGE_POSITION_X, SLOT_PREVIOUSPAGE_POSITION_Y,
-                        SLOT_CHANGEPAGE_WIDTH, SLOT_CHANGEPAGE_HEIGHT) && !isPlayState)
-        {
-            if(mouseLeftPressed)
-            {
-                if(selectedSlotPage > 0) { selectedSlotPage --; }
-
-                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (selectedSlot % SLOT_PER_PAGE_COUNT);
-            }
-        }        
-        else if(isInsideRect(cursorCellX, cursorCellY,
-                        SLOT_NEXTPAGE_POSITION_X, SLOT_NEXTPAGE_POSITION_Y,
-                        SLOT_CHANGEPAGE_WIDTH, SLOT_CHANGEPAGE_HEIGHT) && !isPlayState)
-        {
-            if(mouseLeftPressed)
-            {
-                if(selectedSlotPage < SLOT_PAGES_COUNT - 1) { selectedSlotPage ++; }
-                
-                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (selectedSlot % SLOT_PER_PAGE_COUNT);
-            }
-        }        
-        else if(isInsideRect(cursorCellX, cursorCellY,
-                        soundRowPagesPosX, soundRowPagesPosY,
-                        soundRowPagesWidth, soundRowPagesHeight) && !isPlayState)
-        {
-            if(mouseLeftPressed)
-            {
-                if((cursorCellX - soundRowPagesPosX) % 2 == 0)
-				{
-					if(selectedRowPage > 0) { selectedRowPage --; }
-				}
-				else
-				{
-					if(selectedRowPage < ROW_PAGES_COUNT - 1) { selectedRowPage ++; }
-				}
-            }
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
                         soundRowsPosX, soundRowsPosY,
@@ -1654,15 +1535,6 @@ int main(int argc, char* argv[])
 
         } 
         else if(isInsideRect(cursorCellX, cursorCellY,
-                            SLOTS_POSITION_X, SLOTS_POSITION_Y,
-                            SLOTS_WIDTH, SLOTS_HEIGHT) && !isPlayState)
-        {
-            if(mouseLeftPressed)
-            {            
-                selectedSlot = selectedSlotPage * SLOT_PER_PAGE_COUNT + (cursorCellX - SLOTS_POSITION_X) / (SLOT_DIGITS_COUNT + 1); 
-            }            
-        }        
-        else if(isInsideRect(cursorCellX, cursorCellY,
                             TOOLS_POSITION_X, TOOLS_POSITION_Y,
                             TOOLS_WIDTH, TOOLS_HEIGHT))
         {
@@ -1679,7 +1551,23 @@ int main(int argc, char* argv[])
             {            
                 selectedMode = cursorCellY - MODES_POSITION_Y;
             }            
-        }        
+        }
+        else if(isInsideRect(cursorCellX, cursorCellY,
+                soundRowPagesPosX, soundRowPagesPosY,
+                soundRowPagesWidth, soundRowPagesHeight) && !isPlayState)
+        {
+            if(mouseLeftPressed)
+            {
+                if((cursorCellX - soundRowPagesPosX) % 2 == 0)
+                {
+                    if(selectedRowPage > 0) { selectedRowPage --; }
+                }
+                else
+                {
+                    if(selectedRowPage < ROW_PAGES_COUNT - 1) { selectedRowPage ++; }
+                }
+            }
+        }
         else if(isInsideRect(cursorCellX, cursorCellY,
                              CHANNELTYPE_POSITION_X, CHANNELTYPE_POSITION_Y,
                              CHANNELTYPE_WIDTH, CHANNELTYPE_HEIGHT) && !isPlayState)
@@ -1786,7 +1674,7 @@ int main(int argc, char* argv[])
 							  soundAreaPosY + rangeStartIndicatorRow, RANGES_COLOR_1, rangeStartIndicatorCharacter);
 		}
         
-        setScreenCell(cursorCellX, cursorCellY, cursorColor, cursorChar);
+        baseEditorDrawCursor();
         
         showScreen();
         

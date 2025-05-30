@@ -1,4 +1,5 @@
 *.exe
 *.obj
+*.res
 bin/log.txt
 log.txt

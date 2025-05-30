@@ -9,7 +9,7 @@
 #define MAP_HEIGHT 32
 
 #define MAP_DIRECTORY "maps"
-#define MAP_FILENAME_PATTERN "map%02d.map"
+#define MAP_FILENAME_PATTERN "map%03d.map"
 
 #define MAP_CELL_WORLD_SIZE 3.0f
 

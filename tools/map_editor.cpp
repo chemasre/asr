@@ -1,20 +1,16 @@
 #include "map_editor.hpp"
-#include "editor_utils.hpp"
 #include "map.hpp"
-
-#define CELLS_WIDTH 74
-#define CELLS_HEIGHT 40
 
 #define COLOR_OPAQUE MAKE_COLOR(255,0,0)
 
-#define MAP_FILE_PATTERN "map%02d.map"
+#define MAP_FILE_PATTERN "map%03d.map"
 
 #define ITEM_TYPE_COUNT 4
 
 #define ITEM_TYPE_WIDTH 16
 #define ITEM_TYPE_HEIGHT (ITEM_TYPE_COUNT / ITEM_TYPE_WIDTH + 1)
 
-#define ITEM_TYPE_POSITION_X (CELLS_WIDTH - ITEM_TYPE_WIDTH - 2)
+#define ITEM_TYPE_POSITION_X (cellsWidth - ITEM_TYPE_WIDTH - 2)
 #define ITEM_TYPE_POSITION_Y 4
 
 #define ITEM_PARAMS_COUNT 2
@@ -24,10 +20,10 @@
 #define ITEM_PARAMS_WIDTH ITEM_PARAMS_VALUES_COUNT
 #define ITEM_PARAMS_HEIGHT (ITEM_PARAMS_COUNT * 2 - 1)
 
-#define ITEM_PARAMS_POSITION_X (CELLS_WIDTH - ITEM_PARAMS_WIDTH - 2)
+#define ITEM_PARAMS_POSITION_X (cellsWidth - ITEM_PARAMS_WIDTH - 2)
 #define ITEM_PARAMS_POSITION_Y (ITEM_TYPE_POSITION_Y + ITEM_TYPE_HEIGHT + 2 + 2)
 
-#define ITEM_DESC_POSITION_X (CELLS_WIDTH - ITEM_DESC_WIDTH - 2)
+#define ITEM_DESC_POSITION_X (cellsWidth - ITEM_DESC_WIDTH - 2)
 #define ITEM_DESC_POSITION_Y (ITEM_PARAMS_POSITION_Y + ITEM_PARAMS_HEIGHT + 2 + 2)
 
 #define DESC_LENGTH 16
@@ -37,22 +33,20 @@
 
 #define ITEM_PARAM_DESC_MAXPATTERNS 100
 
-// Bottom aligned
-
 #define MAP_PARAMS_VALUES_COUNT 16
 #define MAP_PARAMS_COUNT 4
-
-#define MAP_DESC_WIDTH DESC_LENGTH
-#define MAP_DESC_HEIGHT MAP_PARAMS_COUNT
-
-#define MAP_DESC_POSITION_X (CELLS_WIDTH - MAP_DESC_WIDTH - 2)
-#define MAP_DESC_POSITION_Y (CELLS_HEIGHT - MAP_DESC_HEIGHT - 1)
 
 #define MAP_PARAMS_WIDTH MAP_PARAMS_VALUES_COUNT
 #define MAP_PARAMS_HEIGHT (MAP_PARAMS_COUNT * 2 - 1)
 
-#define MAP_PARAMS_POSITION_X (CELLS_WIDTH - MAP_PARAMS_WIDTH - 2)
-#define MAP_PARAMS_POSITION_Y (MAP_DESC_POSITION_Y - MAP_PARAMS_HEIGHT - 4)
+#define MAP_PARAMS_POSITION_X (cellsWidth - MAP_PARAMS_WIDTH - 2)
+#define MAP_PARAMS_POSITION_Y (ITEM_DESC_POSITION_Y + ITEM_DESC_HEIGHT + 2 + 2)
+
+#define MAP_DESC_WIDTH DESC_LENGTH
+#define MAP_DESC_HEIGHT MAP_PARAMS_COUNT
+
+#define MAP_DESC_POSITION_X (cellsWidth - MAP_DESC_WIDTH - 2)
+#define MAP_DESC_POSITION_Y (MAP_PARAMS_POSITION_Y + MAP_PARAMS_HEIGHT + 2 + 2)
 
 #define TOOL_DRAW 0
 #define TOOL_PICK 1
@@ -84,11 +78,7 @@
 #define COMMANDS1_POSITION_X 3
 #define COMMANDS1_POSITION_Y (TOOLS_POSITION_Y + TOOLS_HEIGHT + 5)
 
-#define SLOTS_COUNT 16
-#define SLOTS_WIDTH (SLOTS_COUNT * 2)
-#define SLOTS_HEIGHT 1
-#define SLOTS_POSITION_X (TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5)
-#define SLOTS_POSITION_Y (CELLS_HEIGHT - SLOTS_HEIGHT - 1)
+//#define SLOTS_COUNT 16
 
 char itemTypeCharacters[ITEM_TYPE_COUNT] =
 { '.',
@@ -254,14 +244,8 @@ int itemParamColors[ITEM_PARAMS_VALUES_COUNT]
     
 };
 
-char cursorChar;
-int cursorColor;
-int cursorCellX;
-int cursorCellY;
-
 int selectedTool;
 
-int selectedSlot;
 int selectedItemType;
 int selectedItemParams[ITEM_PARAMS_COUNT];
 
@@ -304,8 +288,6 @@ void drawUI()
 
     drawWindow(drawAreaPosX - 1, drawAreaPosY - 3, drawAreaWidth + 2, drawAreaHeight + 4, "MAP", MAKE_COLOR(255, 255, 0)); 
 
-    drawWindow(SLOTS_POSITION_X - 1, SLOTS_POSITION_Y - 1, SLOTS_WIDTH + 2, SLOTS_HEIGHT + 2, NULL, MAKE_COLOR(255, 255, 0));
-    
     drawWindow(TOOLS_POSITION_X - 1, TOOLS_POSITION_Y - 3, TOOLS_WIDTH + 2, TOOLS_HEIGHT + 4, "TOOLS", MAKE_COLOR(255, 255, 0));    
 
     drawWindow(COMMANDS1_POSITION_X - 1, COMMANDS1_POSITION_Y - 3, COMMANDS1_WIDTH + 2, COMMANDS1_HEIGHT + 4, "COMMAND", MAKE_COLOR(255, 255, 0)); 
@@ -409,16 +391,9 @@ void drawUI()
             setScreenCell(drawAreaPosX + x, drawAreaPosY + y, itemParamColors[param], itemTypeCharacters[type]);
         }
     }
-
-    for(int x = 0; x < SLOTS_COUNT; x ++)
-    {
-        int color;
-        if(x == selectedSlot) { color = COLOR_SELECTED; }
-        else { color = COLOR_UNSELECTED; }             
-
-        setScreenCell(SLOTS_POSITION_X + x * 2, SLOTS_POSITION_Y, color, x <= 9 ? '0' + x : 'A' + x - 10);
-    }
     
+    baseEditorDraw();
+
     drawString(selectedTool == TOOL_DRAW ? COLOR_SELECTED : COLOR_UNSELECTED, " DRAW", TOOLS_POSITION_X, TOOLS_POSITION_Y + 0);
     drawString(selectedTool == TOOL_PICK ? COLOR_SELECTED : COLOR_UNSELECTED, " PICK", TOOLS_POSITION_X, TOOLS_POSITION_Y + 1);
     drawString(selectedTool == TOOL_FILL ? COLOR_SELECTED : COLOR_UNSELECTED, " FILL", TOOLS_POSITION_X, TOOLS_POSITION_Y + 2);
@@ -596,20 +571,18 @@ int main(int argc, char* argv[])
     initUI();
     initMenu();
     
+    baseEditorInit(75, 43);
+    
 	char titleString[TITLE_STRING_SIZE];
 	sprintf(titleString, TITLE_STRING_PATTERN, "Map Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
     setScreenTitle(titleString);
     
-    resizeScreen(CELLS_WIDTH * fontWidth, CELLS_HEIGHT * fontHeight);
+    resizeScreen(cellsWidth * fontWidth, cellsHeight * fontHeight);
     
     int quit = 0;
     
-    cursorChar = 'O';
-    cursorColor = MAKE_COLOR(255, 255, 255);
-    
     selectedTool = TOOL_DRAW;
     
-    selectedSlot = 0;
     selectedItemType = 0;
     for(int p = 0; p < ITEM_PARAMS_COUNT; p++) { selectedItemParams[p] = 0; }
     
@@ -646,26 +619,9 @@ int main(int argc, char* argv[])
         
     while(!quit)
     {
-		if(!isKeyPressed(KEY_ALT))
-		{
-			if(isKeyPressed(KEY_0)) { selectedSlot = 0; }
-			else if(isKeyPressed(KEY_1)) { selectedSlot = 1; }
-			else if(isKeyPressed(KEY_2)) { selectedSlot = 2; }
-			else if(isKeyPressed(KEY_3)) { selectedSlot = 3; }
-			else if(isKeyPressed(KEY_4)) { selectedSlot = 4; }
-			else if(isKeyPressed(KEY_5)) { selectedSlot = 5; }
-			else if(isKeyPressed(KEY_6)) { selectedSlot = 6; }
-			else if(isKeyPressed(KEY_7)) { selectedSlot = 7; }
-			else if(isKeyPressed(KEY_8)) { selectedSlot = 8; }
-			else if(isKeyPressed(KEY_9)) { selectedSlot = 9; }
-			else if(isKeyPressed(KEY_A)) { selectedSlot = 10; }
-			else if(isKeyPressed(KEY_B)) { selectedSlot = 11; }
-			else if(isKeyPressed(KEY_C)) { selectedSlot = 12; }
-			else if(isKeyPressed(KEY_D)) { selectedSlot = 13; }
-			else if(isKeyPressed(KEY_E)) { selectedSlot = 14; }
-			else if(isKeyPressed(KEY_F)) { selectedSlot = 15; }
-		}
-		
+        updateInput();
+        baseEditorUpdate();
+        
         if(isKeyDown(KEY_ESC))
         {
             quit = 1;
@@ -707,21 +663,8 @@ int main(int argc, char* argv[])
             commandHighlightedError = !success;
             commandHighlightedTimer = COMMAND_HIGHLIGHT_TIME;
         }        
-        
-        int mouseLeftPressed = isKeyPressed(MOUSE_LEFT) ? 1 : 0;
-        int mouseRightPressed = isKeyPressed(MOUSE_RIGHT) ? 1 : 0;
-        
-        int cursorWindowX;
-        int cursorWindowY;
-        getMousePosition(&cursorWindowX, &cursorWindowY);
-        
-        cursorCellX = cursorWindowX / fontWidth;
-        cursorCellY = cursorWindowY / fontHeight;
-        
-        if(mouseLeftPressed) { cursorChar = 'X'; }
-        else { cursorChar = 'O'; }
-        
 
+        
         if(isInsideRect(cursorCellX, cursorCellY,
             ITEM_TYPE_POSITION_X, ITEM_TYPE_POSITION_Y,
             ITEM_TYPE_WIDTH, ITEM_TYPE_HEIGHT))
@@ -814,15 +757,6 @@ int main(int argc, char* argv[])
 
         } 
         else if(isInsideRect(cursorCellX, cursorCellY,
-                            SLOTS_POSITION_X, SLOTS_POSITION_Y,
-                            SLOTS_WIDTH, SLOTS_HEIGHT))
-        {
-            if(mouseLeftPressed)
-            {            
-                selectedSlot = (cursorCellX - SLOTS_POSITION_X) / 2;
-            }            
-        }        
-        else if(isInsideRect(cursorCellX, cursorCellY,
                             TOOLS_POSITION_X, TOOLS_POSITION_Y,
                             TOOLS_WIDTH, TOOLS_HEIGHT))
         {
@@ -844,7 +778,7 @@ int main(int argc, char* argv[])
         
         drawUI();
         
-        setScreenCell(cursorCellX, cursorCellY, cursorColor, cursorChar);
+        baseEditorDrawCursor();
         
         showScreen();
         

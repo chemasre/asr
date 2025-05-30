@@ -36,6 +36,11 @@ int clipAreaY;
 int clipAreaW;
 int clipAreaH;
 
+void loadIcon()
+{
+    HINSTANCE instance = GetModuleHandle(NULL);
+    HICON hIcon = (HICON)LoadImage(instance, MAKEINTRESOURCE(MAINICON), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR); 
+}
 
 void resizeScreen(int windowWidth, int windowHeight)
 {
@@ -304,6 +309,7 @@ void initScreen()
     screenMonitorWidth = GetSystemMetrics(SM_CXFULLSCREEN);
     screenMonitorHeight = GetSystemMetrics(SM_CYFULLSCREEN);    
     
+    loadIcon();
     resizeScreen(SCREEN_MIN_WINDOW_WIDTH, SCREEN_MIN_WINDOW_HEIGHT);
     
     frameCounter = 0;

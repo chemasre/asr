@@ -8,7 +8,7 @@
 #define TEXTURE_SIZE 32
 
 #define TEXTURE_DIRECTORY "textures"
-#define TEXTURE_FILENAME_PATTERN "texture%02d.tex"
+#define TEXTURE_FILENAME_PATTERN "texture%03d.tex"
 
 struct TextureColor
 {
