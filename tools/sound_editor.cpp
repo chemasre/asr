@@ -15,10 +15,10 @@
 #define FREQUENCY_WIDTH NOTES_COUNT
 #define FREQUENCY_HEIGHT OCTAVES_COUNT
 
-#define FREQUENCY_POSITION_X (cellsWidth - FREQUENCY_WIDTH - 2)
+#define FREQUENCY_POSITION_X (cellsWidth - FREQUENCY_WIDTH * SOUND_WIDTH_IN_CELLS - 2)
 #define FREQUENCY_POSITION_Y (4)
 
-#define VOLUME_POSITION_X (cellsWidth - VOLUME_WIDTH - 2)
+#define VOLUME_POSITION_X (CHANNELTYPE_POSITION_X - 2 - VOLUME_WIDTH - 2)
 #define VOLUME_POSITION_Y (FREQUENCY_POSITION_Y + FREQUENCY_HEIGHT + 2 + 2)
 
 #define VOLUME_COUNT 12
@@ -34,7 +34,7 @@
 
 #define TIME_PROPERTY_VALUES_COUNT 12
 
-#define TIME_POSITION_X (cellsWidth - CHANNELTYPE_WIDTH - 2)
+#define TIME_POSITION_X (CHANNELTYPE_POSITION_X - 2 - VOLUME_WIDTH - 2)
 #define TIME_POSITION_Y (VOLUME_POSITION_Y  + VOLUME_HEIGHT + 2 + 2)
 
 #define TIME_WIDTH TIME_PROPERTY_VALUES_COUNT
@@ -49,7 +49,7 @@
 #define CHANNELTYPE_HEIGHT 1
 
 #define CHANNELTYPE_POSITION_X (cellsWidth - CHANNELTYPE_WIDTH - 2)
-#define CHANNELTYPE_POSITION_Y (TIME_POSITION_Y  + TIME_HEIGHT + 2 + 2)
+#define CHANNELTYPE_POSITION_Y VOLUME_POSITION_Y
 
 #define CHANNELVOLUME_POSITION_X (cellsWidth - CHANNELVOLUME_WIDTH - 2)
 #define CHANNELVOLUME_POSITION_Y (CHANNELTYPE_POSITION_Y + CHANNELTYPE_HEIGHT + 2 + 2)
@@ -65,7 +65,7 @@
 
 #define METER_COUNT 3
 
-#define METER_POSITION_X (cellsWidth - METER_WIDTH - 2)
+#define METER_POSITION_X CHANNELVOLUME_POSITION_X
 #define METER_POSITION_Y (CHANNELVOLUME_POSITION_Y + CHANNELVOLUME_HEIGHT + 2 + 2)
 
 #define METER_WIDTH 12
@@ -73,7 +73,7 @@
 
 #define TEMPO_COUNT 12
 
-#define TEMPO_POSITION_X (cellsWidth - TEMPO_WIDTH - 2)
+#define TEMPO_POSITION_X CHANNELVOLUME_POSITION_X
 #define TEMPO_POSITION_Y (METER_POSITION_Y + METER_HEIGHT + 2 + 2)
 
 #define TEMPO_WIDTH TEMPO_COUNT
@@ -135,7 +135,8 @@
 #define PLAYSTATE_STOPPED 0
 #define PLAYSTATE_PLAYING 1
 
-
+#define SOUND_WIDTH_IN_CELLS 3
+#define SOUND_HEIGHT_IN_CELLS 1
 
 int selectedTool;
 int selectedMode;
@@ -153,10 +154,10 @@ int selectedTempo;
 int selectedRow;
 int selectedRowPage;
 
-int selectionPosX;
-int selectionPosY;
-int selectionWidth;
-int selectionHeight;
+int selectionSoundX;
+int selectionSoundY;
+int selectionSoundWidth;
+int selectionSoundHeight;
 
 int soundAreaPosX;
 int soundAreaPosY;
@@ -179,6 +180,7 @@ int soundRowPagesWidth;
 int soundRowPagesHeight;
 
 char noteCharacters[NOTES_COUNT] = { 'C', 'c', 'D', 'd', 'E', 'F', 'f', 'G', 'g', 'A', 'a', 'B' };
+char octavesCharacters[OCTAVES_COUNT] = { '0', '1', '2', '3', '4', '5', '6', '7', '8' };
 
 char workPath[MAX_PATH_LENGTH];
 
@@ -401,7 +403,7 @@ void drawUI()
 {
 	int isPlayState = (playState == PLAYSTATE_PLAYING);
 	
-    drawWindow(FREQUENCY_POSITION_X - 1, FREQUENCY_POSITION_Y - 3, FREQUENCY_WIDTH + 2, FREQUENCY_HEIGHT + 4, "NOTE", MAKE_COLOR(255, 255, 0));    
+    drawWindow(FREQUENCY_POSITION_X - 1, FREQUENCY_POSITION_Y - 3, FREQUENCY_WIDTH * SOUND_WIDTH_IN_CELLS + 2, FREQUENCY_HEIGHT  * SOUND_HEIGHT_IN_CELLS + 4, "NOTE", MAKE_COLOR(255, 255, 0));    
 
     drawWindow(VOLUME_POSITION_X - 1, VOLUME_POSITION_Y - 3, VOLUME_WIDTH + 2, VOLUME_HEIGHT + 4, "VOLUME", MAKE_COLOR(255, 255, 0));    
 
@@ -415,16 +417,16 @@ void drawUI()
 
     drawWindow(TEMPO_POSITION_X - 1, TEMPO_POSITION_Y - 3, TEMPO_WIDTH + 2, TEMPO_HEIGHT + 4, "TEMPO", MAKE_COLOR(255, 255, 0));  
 
-    drawWindow(soundAreaPosX - 1, soundAreaPosY - 3 - 2, soundAreaWidth + 2 + soundRowsWidth + 1, soundAreaHeight + 4 + 2, "CHANNELS", MAKE_COLOR(255, 255, 0)); 
+    drawWindow(soundAreaPosX - 1, soundAreaPosY - 3 - 2, soundAreaWidth * SOUND_WIDTH_IN_CELLS + 2 + soundRowsWidth + 1, soundAreaHeight  * SOUND_HEIGHT_IN_CELLS + 4 + 2, "CHANNELS", MAKE_COLOR(255, 255, 0)); 
 	
-	fillScreenArea(soundAreaPosX, soundAreaPosY - 1, soundAreaWidth + 1 + soundRowsWidth, 1, MAKE_COLOR(255,255,0), '-');
+	fillScreenArea(soundAreaPosX, soundAreaPosY - 1, soundAreaWidth * SOUND_WIDTH_IN_CELLS + 1 + soundRowsWidth, 1, MAKE_COLOR(255,255,0), '-');
 
-	setScreenCell(soundAreaPosX + soundAreaWidth, soundAreaPosY - 2, MAKE_COLOR(255,255,0), '|');
+	setScreenCell(soundAreaPosX + soundAreaWidth * SOUND_WIDTH_IN_CELLS, soundAreaPosY - 2, MAKE_COLOR(255,255,0), '|');
 
-	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, "- ", soundAreaPosX + soundAreaWidth + 1, soundAreaPosY - 2);
-	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " +", soundAreaPosX + soundAreaWidth + 3, soundAreaPosY - 2);
+	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, "- ", soundAreaPosX + soundAreaWidth * SOUND_WIDTH_IN_CELLS + 1, soundAreaPosY - 2);
+	drawString(!isPlayState ? MAKE_COLOR(255,255,255):COLOR_UNSELECTED, " +", soundAreaPosX + soundAreaWidth * SOUND_WIDTH_IN_CELLS + 3, soundAreaPosY - 2);
 
-	fillScreenArea(soundAreaPosX + soundAreaWidth, soundAreaPosY, 1, soundAreaHeight, MAKE_COLOR(255,255,0), '|');
+	fillScreenArea(soundAreaPosX + soundAreaWidth * SOUND_WIDTH_IN_CELLS, soundAreaPosY, 1, soundAreaHeight * SOUND_HEIGHT_IN_CELLS, MAKE_COLOR(255,255,0), '|');
 
     baseEditorDraw();
     
@@ -448,7 +450,8 @@ void drawUI()
             if(selectedNote == x && selectedOctave == y) { color = COLOR_SELECTED; }
             else { color = MAKE_COLOR(r, g, b); }            
             
-            setScreenCell(FREQUENCY_POSITION_X + x, FREQUENCY_POSITION_Y + y, color, noteCharacters[x]);
+            setScreenCell(FREQUENCY_POSITION_X + x * SOUND_WIDTH_IN_CELLS, FREQUENCY_POSITION_Y + y * SOUND_HEIGHT_IN_CELLS, color, noteCharacters[x]);
+            setScreenCell(FREQUENCY_POSITION_X + x * SOUND_WIDTH_IN_CELLS + 1, FREQUENCY_POSITION_Y + y * SOUND_HEIGHT_IN_CELLS, color, octavesCharacters[y]);
         }
     }
 	
@@ -456,7 +459,7 @@ void drawUI()
 	{
 		int color = getChannelColor(x, 1);		
 		
-		setScreenCell(soundChannelsPosX + x, soundChannelsPosY, color, hexaCharacters[x]);
+		setScreenCell(soundChannelsPosX + x * SOUND_WIDTH_IN_CELLS, soundChannelsPosY, color, hexaCharacters[x]);
 	}
 	
     
@@ -554,20 +557,28 @@ void drawUI()
 			int rangeCount = songRanges[selectedSlot * 2 + 1];
 			int rangeEnd = rangeStart + rangeCount - 1;		
 			
+            int isBar = 1;
 			char c = '|';
-			if(row == selectedRow) { c = '-'; }
-			else if(row == rangeStart || row == rangeEnd) { c = '-'; }
-			else if(selectedMeter == METER_TWO_BY_FOUR && row % 2 == 0) { c = '-'; } 
-			else if(selectedMeter == METER_THREE_BY_FOUR && row % 3 == 0) { c = '-'; }
-			else if(selectedMeter == METER_FOUR_BY_FOUR && row % 4 == 0) { c = '-'; }
+			if(row == selectedRow) { c = '-'; isBar = 0; }
+			else if(row == rangeStart || row == rangeEnd) { c = '-'; isBar = 0;  }
+			else if(selectedMeter == METER_TWO_BY_FOUR && row % 2 == 0) { c = '-'; isBar = 0;  } 
+			else if(selectedMeter == METER_THREE_BY_FOUR && row % 3 == 0) { c = '-'; isBar = 0;  }
+			else if(selectedMeter == METER_FOUR_BY_FOUR && row % 4 == 0) { c = '-'; isBar = 0;  }
 			
 			int color;
 			
 			if(pageRow == selectedRow) { color = COLOR_SELECTED; }
 			else if(row == rangeStart || row == rangeEnd) { color = RANGES_COLOR_1; }
 			else { color = getChannelColor(x, 0); }
-
-			setScreenCell(soundAreaPosX + x, soundAreaPosY + y, color, c);
+            
+            
+            for(int i = 0; i < SOUND_WIDTH_IN_CELLS; i ++)
+            {
+                if(!isBar || isBar && i == 0)
+                {
+                    setScreenCell(soundAreaPosX + x * SOUND_WIDTH_IN_CELLS + i, soundAreaPosY + y * SOUND_HEIGHT_IN_CELLS, color, c);
+                }
+            }
 		}
 	}
 
@@ -585,7 +596,9 @@ void drawUI()
 				int g = 127 + (int)(volumeLevel * (128.0f / (VOLUME_COUNT - 1)));
 				int b = (int)(octave * (255.0f / (OCTAVES_COUNT - 1)));
 								
-                setScreenCell(soundAreaPosX + x, soundAreaPosY + y, MAKE_COLOR(r,g,b), noteCharacters[note]);
+                setScreenCell(soundAreaPosX + x * SOUND_WIDTH_IN_CELLS, soundAreaPosY + y * SOUND_HEIGHT_IN_CELLS, MAKE_COLOR(r,g,b), noteCharacters[note]);
+                setScreenCell(soundAreaPosX + x * SOUND_WIDTH_IN_CELLS + 1, soundAreaPosY + y * SOUND_HEIGHT_IN_CELLS, MAKE_COLOR(r,g,b), octavesCharacters[octave]);
+                
             }
         }
     }
@@ -662,79 +675,6 @@ void drawUI()
     drawString(highlightShiftDown ? highlightColor : COLOR_UNSELECTED, "TUNED", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 5);
     drawString(COLOR_SELECTED, " SPC", COMMANDS2_POSITION_X, COMMANDS2_POSITION_Y + 6);
     drawString(highlightPlayOrStop ? highlightColor : COLOR_UNSELECTED, !isPlayState ? "PLAY" : "STOP", COMMANDS2_POSITION_X + 6, COMMANDS2_POSITION_Y + 6);
-
-}
-
-void setMarqueeTopLeft(int x, int y, int* mX, int* mY, int* mW, int* mH)
-{
-	if(x <= *mX + *mW - 1)
-	{
-		*mX = x;
-		*mW = *mW - (x - *mX);
-		if(*mW <= 0) { printf("NEGATIVE Width"); exit(-1); }
-	}
-	else
-	{
-		*mX = x;
-		*mW = 1;
-	}
-	
-	if(y <= *mY + *mH - 1)
-	{
-		*mY  = y;
-		*mH = *mH - (y - *mY);
-		if(*mH < 0) { printf("NEGATIVE Height"); exit(-1); }
-	}
-	else
-	{
-		*mY = y;
-		*mH = 1;
-	}
-	
-	if(*mX + *mW - 1 > soundAreaWidth - 1)
-	{
-		*mW = soundAreaWidth - *mX;		
-	}
-	
-	if(*mY + *mH - 1 > soundAreaHeight - 1)
-	{
-		*mH = soundAreaHeight - *mY;		
-	}
-}
-
-void setMarqueeBottomRight(int x, int y, int* mX, int* mY, int* mW, int* mH)
-{
-	*mW = x < *mX ? 1 : x - *mX + 1;
-	*mH = y < *mY ? 1 : y - *mY + 1;                        
-
-}
-
-void intersectMarquee(int &x1, int &y1, int &w1, int &h1, int x2, int y2, int w2, int h2)
-{
-	
-}
-
-void drawMarquee(int mX, int mY, int mW, int mH, int mC)
-{
-	int dX = soundAreaPosX;
-	int dY = soundAreaPosY;
-	
-	setScreenCell(dX + mX,          dY + mY, mC, '+');
-	setScreenCell(dX + mX + mW - 1, dY + mY, mC, '+');
-	setScreenCell(dX + mX,          dY + mY + mH - 1, mC, '+');
-	setScreenCell(dX + mX + mW - 1, dY + mY + mH - 1, mC, '+');
-	
-	for(int x = 1; x - 1 < mW - 2; x ++)
-	{
-		setScreenCell(dX + mX + x, dY + mY, mC, '-');
-		setScreenCell(dX + mX + x, dY + mY + mH - 1, mC, '-');
-	}
-	
-	for(int y = 1; y - 1 < mH - 2; y ++)
-	{
-		setScreenCell(dX + mX,          dY + mY + y, mC, '|');
-		setScreenCell(dX + mX + mW - 1, dY + mY + y, mC, '|');
-	}
 
 }
 
@@ -837,15 +777,16 @@ int main(int argc, char* argv[])
     initMenu();
 	initLog();
     
-    baseEditorInit(62, 53);
+    baseEditorInit(118, 43);
     
 	soundAreaPosX = TOOLS_POSITION_X + TOOLS_WIDTH + 1 + 5;
 	soundAreaPosY = 6;
 	soundAreaWidth = 16;
 	soundAreaHeight = 32;
 
+    initSelectableArea(soundAreaPosX, soundAreaPosY, soundAreaWidth, soundAreaHeight);
 
-	soundRowsPosX = soundAreaPosX + soundAreaWidth + 1;
+	soundRowsPosX = soundAreaPosX + soundAreaWidth * SOUND_WIDTH_IN_CELLS + 1;
 	soundRowsPosY = soundAreaPosY;
 	soundRowsWidth = 4;
 	soundRowsHeight = soundAreaHeight;
@@ -855,7 +796,7 @@ int main(int argc, char* argv[])
 	soundChannelsWidth = soundAreaWidth;
 	soundChannelsHeight = 1;
 	
-	soundRowPagesPosX = soundAreaPosX + soundAreaWidth + 1;
+	soundRowPagesPosX = soundAreaPosX + soundAreaWidth *  SOUND_WIDTH_IN_CELLS + 1;
 	soundRowPagesPosY = soundAreaPosY - 2;
 	soundRowPagesWidth = 4;
 	soundRowPagesHeight = 1;
@@ -886,10 +827,10 @@ int main(int argc, char* argv[])
 	selectedRow = 0;
 	selectedRowPage = 0;
 	
-	selectionPosX = 0;
-	selectionPosY = 0;
-	selectionWidth = soundAreaWidth;
-	selectionHeight = soundAreaHeight;
+	selectionSoundX = 0;
+	selectionSoundY = 0;
+	selectionSoundWidth = soundAreaWidth;
+	selectionSoundHeight = soundAreaHeight;
     
     commandHighlighted = 0;
     commandHighlightedTimer = 0;
@@ -1017,10 +958,10 @@ int main(int argc, char* argv[])
 		{
 			int isCut = isKeyPressed(KEY_X);
 			
-			copyBufferPosX = selectionPosX;
-			copyBufferPosY = selectionPosY;
-			copyBufferWidth = selectionWidth;
-			copyBufferHeight = selectionHeight;
+			copyBufferPosX = selectionSoundX;
+			copyBufferPosY = selectionSoundY;
+			copyBufferWidth = selectionSoundWidth;
+			copyBufferHeight = selectionSoundHeight;
 			
 			copyBufferHasFrequency = frequencyModeEnabled;
 			copyBufferHasVolume = volumeModeEnabled;
@@ -1030,12 +971,12 @@ int main(int argc, char* argv[])
 			{
 				for(int x = 0; x < copyBufferWidth; x++)
 				{
-					int f = soundCells[selectedSlot][selectionPosY + y][selectionPosX + x].frequency;					
-					float v = soundCells[selectedSlot][selectionPosY + y][selectionPosX + x].volume;
+					int f = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].frequency;					
+					float v = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].volume;
 					
-					float at = soundCells[selectedSlot][selectionPosY + y][selectionPosX + x].attackDuration;
-					float st = soundCells[selectedSlot][selectionPosY + y][selectionPosX + x].sustainDuration;
-					float dt = soundCells[selectedSlot][selectionPosY + y][selectionPosX + x].decayDuration;
+					float at = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].attackDuration;
+					float st = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].sustainDuration;
+					float dt = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].decayDuration;
 
 					if(frequencyModeEnabled)
 					{						
@@ -1046,7 +987,7 @@ int main(int argc, char* argv[])
 					if(volumeModeEnabled)
 					{
 						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].volume = v;
-						if(isCut) { soundCells[selectedSlot][y + selectionPosY][x + selectionPosX].volume = 0; }
+						if(isCut) { soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].volume = 0; }
 					}
 					
 					if(timeModeEnabled)
@@ -1056,9 +997,9 @@ int main(int argc, char* argv[])
 						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].decayDuration = dt;
 						if(isCut)
 						{
-							soundCells[selectedSlot][y + selectionPosY][x + selectionPosX].attackDuration = 0;
-							soundCells[selectedSlot][y + selectionPosY][x + selectionPosX].sustainDuration = 0;
-							soundCells[selectedSlot][y + selectionPosY][x + selectionPosX].decayDuration = 0;
+							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].attackDuration = 0;
+							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].sustainDuration = 0;
+							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].decayDuration = 0;
 						}
 					}
 				}
@@ -1090,8 +1031,8 @@ int main(int argc, char* argv[])
 						float st = copyBuffer[copyBufferPosY + y][copyBufferPosX + x].sustainDuration;
 						float dt = copyBuffer[copyBufferPosY + y][copyBufferPosX + x].decayDuration;
 						
-						int soundX = cursorCellX - soundAreaPosX + x;
-						int soundY = cursorCellY - soundAreaPosY + y;
+						int soundX = (cursorCellX - soundAreaPosX) / SOUND_WIDTH_IN_CELLS + x;
+						int soundY = (cursorCellY - soundAreaPosY) / SOUND_HEIGHT_IN_CELLS + y;
 						
 						if(isInsideRect(soundX, soundY, 0, 0, soundAreaWidth, soundAreaHeight))
 						{
@@ -1121,41 +1062,41 @@ int main(int argc, char* argv[])
 			
 			if(success)
 			{
-				selectionPosX = (cursorCellX - soundAreaPosX);
-				selectionPosY = (cursorCellY - soundAreaPosY);
-				selectionWidth = copyBufferWidth;
-				selectionHeight = copyBufferHeight;
+				selectionSoundX = (cursorCellX - soundAreaPosX) / SOUND_WIDTH_IN_CELLS;
+				selectionSoundY = (cursorCellY - soundAreaPosY) / SOUND_HEIGHT_IN_CELLS;
+				selectionSoundWidth = copyBufferWidth;
+				selectionSoundHeight = copyBufferHeight;
 				
-				if(selectionPosX < 0)
+				if(selectionSoundX < 0)
 				{
-					selectionWidth += selectionPosX;
-					selectionWidth = max(selectionWidth, 1);
-					selectionPosX = 0;
+					selectionSoundWidth += selectionSoundX;
+					selectionSoundWidth = max(selectionSoundWidth, 1);
+					selectionSoundX = 0;
 				}
-				else if(selectionPosX > soundAreaWidth - 1)
+				else if(selectionSoundX > soundAreaWidth - 1)
 				{
-					selectionPosX = soundAreaWidth - 1;
+					selectionSoundX = soundAreaWidth - 1;
 				}
 				
-				if(selectionPosX + selectionWidth - 1 > soundAreaWidth - 1)
+				if(selectionSoundX + selectionSoundWidth - 1 > soundAreaWidth - 1)
 				{
-					selectionWidth = soundAreaWidth - selectionPosX;
+					selectionSoundWidth = soundAreaWidth - selectionSoundX;
 				}
 
-				if(selectionPosY < 0)
+				if(selectionSoundY < 0)
 				{
-					selectionHeight += selectionPosY;
-					selectionHeight = max(selectionHeight, 1);
-					selectionPosY = 0;
+					selectionSoundHeight += selectionSoundY;
+					selectionSoundHeight = max(selectionSoundHeight, 1);
+					selectionSoundY = 0;
 				}
-				else if(selectionPosY > soundAreaHeight - 1)
+				else if(selectionSoundY > soundAreaHeight - 1)
 				{
-					selectionPosY = soundAreaHeight - 1;
+					selectionSoundY = soundAreaHeight - 1;
 				}
 				
-				if(selectionPosY + selectionHeight - 1 > soundAreaHeight - 1)
+				if(selectionSoundY + selectionSoundHeight - 1 > soundAreaHeight - 1)
 				{ 
-					selectionHeight = soundAreaHeight - selectionPosY;
+					selectionSoundHeight = soundAreaHeight - selectionSoundY;
 				}					
 			}
 
@@ -1168,10 +1109,10 @@ int main(int argc, char* argv[])
 		else if(isKeyPressed(KEY_CONTROL) && (isKeyDown(KEY_U) || isKeyDown(KEY_D)))
 		{
 			int isUp = isKeyPressed(KEY_U);
-	
-			for(int y = selectionPosY; y < selectionHeight; y ++)
+            
+			for(int y = selectionSoundY; y <= selectionSoundY + selectionSoundHeight - 1; y ++)
 			{
-				for(int x = selectionPosX; x < selectionWidth; x++)
+				for(int x = selectionSoundX; x <= selectionSoundX + selectionSoundWidth - 1; x++)
 				{
 					if(frequencyModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
 					{
@@ -1218,19 +1159,19 @@ int main(int argc, char* argv[])
                         }
                         
                         soundCells[selectedSlot][y][x].frequency = getFrequency(octave, note);
+                        
 					}
 					
-					if(volumeModeEnabled)
+					if(volumeModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
 					{
 						int l = getVolumeLevel(soundCells[selectedSlot][y][x].volume);
                         if(isUp) { l++; if(l >= VOLUME_COUNT) { l = VOLUME_COUNT - 1; } }
                         else { l--; if(l < 0) { l = 0; } }
                         
                         soundCells[selectedSlot][y][x].volume = getVolume(l);
-                        
 					}
 					
-					if(timeModeEnabled)
+					if(timeModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
 					{
 						int al = getTimePropertyLevel(soundCells[selectedSlot][y][x].attackDuration);
 						int sl = getTimePropertyLevel(soundCells[selectedSlot][y][x].sustainDuration);
@@ -1248,6 +1189,7 @@ int main(int argc, char* argv[])
                         soundCells[selectedSlot][y][x].attackDuration = getTimeProperty(al);
                         soundCells[selectedSlot][y][x].sustainDuration = getTimeProperty(sl);
                         soundCells[selectedSlot][y][x].decayDuration = getTimeProperty(dl);
+
 					}
 				}
 			}					
@@ -1258,12 +1200,12 @@ int main(int argc, char* argv[])
 		}
 		else if(!isKeyPressed(KEY_CONTROL) && isKeyDown(KEY_C))
 		{
-			for(int y = 0; y < selectionHeight; y ++)
+			for(int y = 0; y < selectionSoundHeight; y ++)
 			{
-				for(int x = 0; x < selectionWidth; x++)
+				for(int x = 0; x < selectionSoundWidth; x++)
 				{
-					int cellX = selectionPosX + x;
-					int cellY = selectionPosY + y;
+					int cellX = selectionSoundX + x;
+					int cellY = selectionSoundY + y;
 										
 					if(frequencyModeEnabled)
 					{						
@@ -1337,19 +1279,19 @@ int main(int argc, char* argv[])
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
                         soundChannelsPosX, soundChannelsPosY,
-                        soundChannelsWidth, soundChannelsHeight))
+                        soundChannelsWidth * SOUND_WIDTH_IN_CELLS, soundChannelsHeight))
         {
             if(mouseLeftPressed)
             {
 				if(selectedTool == TOOL_SET)
 				{
-					int channel = cursorCellX - soundChannelsPosX;
+					int channel = (cursorCellX - soundChannelsPosX) / SOUND_WIDTH_IN_CELLS;
 					channelCells[selectedSlot][channel].type = selectedChannelType;
 					channelCells[selectedSlot][channel].volume = getVolume(selectedChannelVolume);
 				}
 				else if(selectedTool == TOOL_PICK)
 				{
-					int channel = cursorCellX - soundChannelsPosX;
+					int channel = (cursorCellX - soundChannelsPosX) / SOUND_WIDTH_IN_CELLS;
 					selectedChannelType = channelCells[selectedSlot][channel].type;
 					selectedChannelVolume = getVolumeLevel(channelCells[selectedSlot][channel].volume);
 				}
@@ -1361,17 +1303,17 @@ int main(int argc, char* argv[])
         {
             if(mouseLeftPressed)
             {
-				selectedRow = cursorCellY - soundRowsPosY;
+				selectedRow = (cursorCellY - soundRowsPosY) / SOUND_HEIGHT_IN_CELLS;
             }
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
                         FREQUENCY_POSITION_X, FREQUENCY_POSITION_Y,
-                        FREQUENCY_WIDTH, FREQUENCY_HEIGHT))
+                        FREQUENCY_WIDTH * SOUND_WIDTH_IN_CELLS, FREQUENCY_HEIGHT * SOUND_HEIGHT_IN_CELLS))
         {
             if(mouseLeftPressed)
             {            
-                selectedNote = cursorCellX - FREQUENCY_POSITION_X;
-                selectedOctave = cursorCellY - FREQUENCY_POSITION_Y;
+                selectedNote = (cursorCellX - FREQUENCY_POSITION_X) / SOUND_WIDTH_IN_CELLS;
+                selectedOctave = (cursorCellY - FREQUENCY_POSITION_Y) / SOUND_HEIGHT_IN_CELLS;
             }            
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1395,13 +1337,13 @@ int main(int argc, char* argv[])
 		}
         else if(isInsideRect(cursorCellX, cursorCellY,
                         soundAreaPosX, soundAreaPosY,
-                        soundAreaWidth, soundAreaHeight))
+                        soundAreaWidth * SOUND_WIDTH_IN_CELLS, soundAreaHeight * SOUND_HEIGHT_IN_CELLS))
         {
             if(mouseLeftPressed || mouseRightPressed)
             {
                 int s = selectedSlot;
-                int x = cursorCellX - soundAreaPosX;
-                int y = cursorCellY - soundAreaPosY;
+                int x = (cursorCellX - soundAreaPosX) / SOUND_WIDTH_IN_CELLS;
+                int y = (cursorCellY - soundAreaPosY) / SOUND_HEIGHT_IN_CELLS;
                 
                 int canChangeFrequency = (selectedMode == MODE_ALL || selectedMode == MODE_FREQUENCY);
                 int canChangeVolume = (selectedMode == MODE_ALL || selectedMode == MODE_VOLUME);
@@ -1411,11 +1353,11 @@ int main(int argc, char* argv[])
 				{                        
                     if(mouseLeftPressed)
                     {
-						setMarqueeTopLeft(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+						setSelectionTopLeft(x, y, &selectionSoundX, &selectionSoundY, &selectionSoundWidth, &selectionSoundHeight);                        
                     }
                     else
                     {
-						setMarqueeBottomRight(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+						setSelectionBottomRight(x, y, &selectionSoundX, &selectionSoundY, &selectionSoundWidth, &selectionSoundHeight);                        
                     }
 										
 				}
@@ -1423,7 +1365,7 @@ int main(int argc, char* argv[])
                 {
                     if(mouseLeftPressed)
                     {                          
-						if(isInsideRect(x, y, selectionPosX, selectionPosY, selectionWidth, selectionHeight))
+						if(isInsideRect(x, y, selectionSoundX, selectionSoundY, selectionSoundWidth, selectionSoundHeight))
 						{
 							if(canChangeFrequency)
 							{
@@ -1446,7 +1388,7 @@ int main(int argc, char* argv[])
                     }
                     else
                     {
-						if(isInsideRect(x, y, selectionPosX, selectionPosY, selectionWidth, selectionHeight))
+						if(isInsideRect(x, y, selectionSoundX, selectionSoundY, selectionSoundWidth, selectionSoundHeight))
 						{
 							if(canChangeFrequency) { soundCells[s][y][x].frequency = 0; }
 							if(canChangeVolume) { soundCells[s][y][x].volume = 0; }
@@ -1617,11 +1559,11 @@ int main(int argc, char* argv[])
         
         drawUI();
         		
-		int isFullSelection = (selectionPosX == 0 && selectionPosY == 0 && selectionWidth == soundAreaWidth && selectionHeight == soundAreaHeight);
+		int isFullSelection = (selectionSoundX == 0 && selectionSoundY == 0 && selectionSoundWidth == soundAreaWidth && selectionSoundHeight == soundAreaHeight);
         
 		if(selectedTool == TOOL_SELECT || (!isFullSelection && selectedTool == TOOL_SET))
 		{
-			drawMarquee(selectionPosX, selectionPosY, selectionWidth, selectionHeight, COLOR_SELECTED);			
+			drawSelection(selectionSoundX * SOUND_WIDTH_IN_CELLS, selectionSoundY * SOUND_HEIGHT_IN_CELLS, selectionSoundWidth * SOUND_WIDTH_IN_CELLS, selectionSoundHeight * SOUND_HEIGHT_IN_CELLS, COLOR_SELECTED);			
 		}
 		
 				
@@ -1664,13 +1606,13 @@ int main(int argc, char* argv[])
 			{ rangeEndIndicatorRow = soundAreaHeight - 1; rangeEndIndicatorCharacter = 'v'; }
 			
 
-			fillScreenArea(soundAreaPosX, soundAreaPosY + rangeEndIndicatorRow, soundAreaWidth, 1, RANGES_COLOR_1, '-');					
-			setScreenCell(soundAreaPosX + soundAreaWidth / 2,
+			fillScreenArea(soundAreaPosX, soundAreaPosY + rangeEndIndicatorRow * SOUND_HEIGHT_IN_CELLS, soundAreaWidth * SOUND_WIDTH_IN_CELLS, 1, RANGES_COLOR_1, '-');					
+			setScreenCell(soundAreaPosX + (soundAreaWidth * SOUND_WIDTH_IN_CELLS) / 2,
 							  soundAreaPosY + rangeEndIndicatorRow, RANGES_COLOR_1, rangeEndIndicatorCharacter);
 			
-			fillScreenArea(soundAreaPosX, soundAreaPosY + rangeStartIndicatorRow, soundAreaWidth, 1, RANGES_COLOR_1, '-');
+			fillScreenArea(soundAreaPosX, soundAreaPosY + rangeStartIndicatorRow, soundAreaWidth * SOUND_WIDTH_IN_CELLS, 1, RANGES_COLOR_1, '-');
 
-			setScreenCell(soundAreaPosX + soundAreaWidth / 2,
+			setScreenCell(soundAreaPosX + (soundAreaWidth * SOUND_WIDTH_IN_CELLS) / 2,
 							  soundAreaPosY + rangeStartIndicatorRow, RANGES_COLOR_1, rangeStartIndicatorCharacter);
 		}
         

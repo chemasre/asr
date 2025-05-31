@@ -32,6 +32,11 @@ int mouseLeftDown;
 int cellsWidth;
 int cellsHeight;
 
+int selectableAreaX;
+int selectableAreaY;
+int selectableAreaW;
+int selectableAreaH;
+
 void baseEditorInit(int width, int height)
 {
     cursorChar = 'O';
@@ -162,4 +167,85 @@ int isInsideRect(int pX, int pY, int rectX, int rectY, int rectW, int rectH)
     {
         return 0;
     }
+}
+
+void setSelectionTopLeft(int x, int y, int* sX, int* sY, int* sW, int* sH)
+{
+	if(x <= *sX + *sW - 1)
+	{
+		*sX = x;
+		*sW = *sW - (x - *sX);
+		if(*sW <= 0) { printf("NEGATIVE Width"); exit(-1); }
+	}
+	else
+	{
+		*sX = x;
+		*sW = 1;
+	}
+	
+	if(y <= *sY + *sH - 1)
+	{
+		*sY  = y;
+		*sH = *sH - (y - *sY);
+		if(*sH < 0) { printf("NEGATIVE Height"); exit(-1); }
+	}
+	else
+	{
+		*sY = y;
+		*sH = 1;
+	}
+	
+	if(*sX + *sW - 1 > selectableAreaW - 1)
+	{
+		*sW = selectableAreaW - *sX;		
+	}
+	
+	if(*sY + *sH - 1 > selectableAreaH - 1)
+	{
+		*sH = selectableAreaH - *sY;		
+	}
+}
+
+void initSelectableArea(int x, int y, int w, int h)
+{
+    selectableAreaX = x;
+    selectableAreaY = y;
+    selectableAreaW = w;
+    selectableAreaH = h;
+}
+
+void setSelectionBottomRight(int x, int y, int* sX, int* sY, int* sW, int* sH)
+{
+	*sW = x < *sX ? 1 : x - *sX + 1;
+	*sH = y < *sY ? 1 : y - *sY + 1;                        
+
+}
+
+void intersectSelection(int &x1, int &y1, int &w1, int &h1, int x2, int y2, int w2, int h2)
+{
+	
+}
+
+void drawSelection(int sX, int sY, int sW, int sH, int mC)
+{
+	int dX = selectableAreaX;
+	int dY = selectableAreaY;
+	
+	setScreenCell(dX + sX,          dY + sY, mC, '+');
+	setScreenCell(dX + sX + sW - 1, dY + sY, mC, '+');
+	setScreenCell(dX + sX,          dY + sY + sH - 1, mC, '+');
+	setScreenCell(dX + sX + sW - 1, dY + sY + sH - 1, mC, '+');
+	
+	for(int x = 1; x - 1 < sW - 2; x ++)
+	{
+		setScreenCell(dX + sX + x, dY + sY, mC, '-');
+		setScreenCell(dX + sX + x, dY + sY + sH - 1, mC, '-');
+	}
+	
+	for(int y = 1; y - 1 < sH - 2; y ++)
+	{
+		setScreenCell(dX + sX,          dY + sY + y, mC, '|');
+		setScreenCell(dX + sX + sW - 1, dY + sY + y, mC, '|');
+	}
+
 }

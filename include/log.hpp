@@ -3,6 +3,8 @@
 
 #include <common_header.hpp>
 
+void logMessageVar(const char* name, int n);
+void logMessageVar(const char* name, float n);
 void logMessage(const char* text);
 void logWarning(const char* text);
 void logError(const char* text);

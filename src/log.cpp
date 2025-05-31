@@ -5,6 +5,20 @@
 FILE* logFile;
 char logLine[200];
 
+void logMessageVar(const char* name, int n)
+{
+    sprintf(logLine, "MESSAGE: %s: %d\n", name, n);    
+    fprintf(logFile, logLine);
+    fflush(logFile);
+}
+
+void logMessageVar(const char* name, float f)
+{
+    sprintf(logLine, "MESSAGE: %s: %f\n", name, f);    
+    fprintf(logFile, logLine);
+    fflush(logFile);
+}
+
 void logMessage(const char* text)
 {
     sprintf(logLine, "MESSAGE: %s\n", text);

@@ -52,4 +52,12 @@ void baseEditorFinish();
 
 int isInsideRect(int pX, int pY, int rectX, int rectY, int rectW, int rectH);
 
+// Selection
+
+void initSelectableArea(int x, int y, int w, int h);
+void setSelectionTopLeft(int x, int y, int* selectionX, int* selectionY, int* selectionW, int* selectionH);
+void setSelectionBottomRight(int x, int y, int* selectionX, int* selectionY, int* selectionW, int* selectionH);
+void intersectSelection(int &x1, int &y1, int &w1, int &h1, int x2, int y2, int w2, int h2);
+void drawSelection(int selectionX, int selectionY, int selectionW, int selectionH, int selectionC);
+
 #endif

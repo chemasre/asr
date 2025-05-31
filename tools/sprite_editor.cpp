@@ -254,78 +254,7 @@ void drawUI()
 
 }
 
-void setMarqueeTopLeft(int x, int y, int* mX, int* mY, int* mW, int* mH)
-{
-	if(x <= *mX + *mW - 1)
-	{
-		*mX = x;
-		*mW = *mW - (x - *mX);
-		if(*mW <= 0) { printf("NEGATIVE Width"); exit(-1); }
-	}
-	else
-	{
-		*mX = x;
-		*mW = 1;
-	}
-	
-	if(y <= *mY + *mH - 1)
-	{
-		*mY  = y;
-		*mH = *mH - (y - *mY);
-		if(*mH < 0) { printf("NEGATIVE Height"); exit(-1); }
-	}
-	else
-	{
-		*mY = y;
-		*mH = 1;
-	}
-	
-	if(*mX + *mW - 1 > drawAreaWidth - 1)
-	{
-		*mW = drawAreaWidth - *mX;		
-	}
-	
-	if(*mY + *mH - 1 > drawAreaHeight - 1)
-	{
-		*mH = drawAreaHeight - *mY;		
-	}
-}
 
-void setMarqueeBottomRight(int x, int y, int* mX, int* mY, int* mW, int* mH)
-{
-	*mW = x < *mX ? 1 : x - *mX + 1;
-	*mH = y < *mY ? 1 : y - *mY + 1;                        
-
-}
-
-void intersectMarquee(int &x1, int &y1, int &w1, int &h1, int x2, int y2, int w2, int h2)
-{
-	
-}
-
-void drawMarquee(int mX, int mY, int mW, int mH, int mC)
-{
-	int dX = drawAreaPosX;
-	int dY = drawAreaPosY;
-	
-	setScreenCell(dX + mX,          dY + mY, mC, '+');
-	setScreenCell(dX + mX + mW - 1, dY + mY, mC, '+');
-	setScreenCell(dX + mX,          dY + mY + mH - 1, mC, '+');
-	setScreenCell(dX + mX + mW - 1, dY + mY + mH - 1, mC, '+');
-	
-	for(int x = 1; x - 1 < mW - 2; x ++)
-	{
-		setScreenCell(dX + mX + x, dY + mY, mC, '-');
-		setScreenCell(dX + mX + x, dY + mY + mH - 1, mC, '-');
-	}
-	
-	for(int y = 1; y - 1 < mH - 2; y ++)
-	{
-		setScreenCell(dX + mX,          dY + mY + y, mC, '|');
-		setScreenCell(dX + mX + mW - 1, dY + mY + y, mC, '|');
-	}
-
-}
 
 int tryLoadSprite(int slot)
 {
@@ -435,6 +364,7 @@ int main(int argc, char* argv[])
     initMenu();
 	
 	baseEditorInit(73, 43);
+    initSelectableArea(drawAreaPosX, drawAreaPosY, drawAreaWidth, drawAreaHeight);
 	
 	char titleString[TITLE_STRING_SIZE];
 	sprintf(titleString, TITLE_STRING_PATTERN, "Sprite Editor", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, "Jose M Solis");
@@ -872,11 +802,11 @@ int main(int argc, char* argv[])
 				{                        
                     if(mouseLeftPressed)
                     {
-						setMarqueeTopLeft(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+						setSelectionTopLeft(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
                     }
                     else
                     {
-						setMarqueeBottomRight(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
+						setSelectionBottomRight(x, y, &selectionPosX, &selectionPosY, &selectionWidth, &selectionHeight);                        
                     }
 										
 				}
@@ -956,11 +886,11 @@ int main(int argc, char* argv[])
                         
                     if(mouseLeftPressed)
                     {
-						setMarqueeTopLeft(x, y, &bX, &bY, &bW, &bH);                        
+						setSelectionTopLeft(x, y, &bX, &bY, &bW, &bH);                        
                     }
                     else
                     {
-						setMarqueeBottomRight(x, y, &bX, &bY, &bW, &bH);
+						setSelectionBottomRight(x, y, &bX, &bY, &bW, &bH);
                     }
 					
                     spriteBounds[selectedSlot * 4 + 0] = bX;
@@ -1032,7 +962,7 @@ int main(int argc, char* argv[])
         
 		if(selectedTool == TOOL_SELECT || (!isFullSelection && selectedTool == TOOL_DRAW))
 		{
-			drawMarquee(selectionPosX, selectionPosY, selectionWidth, selectionHeight, COLOR_SELECTED);			
+			drawSelection(selectionPosX, selectionPosY, selectionWidth, selectionHeight, COLOR_SELECTED);			
 		}
         else if(selectedTool == TOOL_BOUNDS)
         {
@@ -1041,7 +971,7 @@ int main(int argc, char* argv[])
             int bW = spriteBounds[selectedSlot * 4 + 2];
             int bH = spriteBounds[selectedSlot * 4 + 3];
 			
-			drawMarquee(bX, bY, bW, bH, COLOR_BOUNDS);
+			drawSelection(bX, bY, bW, bH, COLOR_BOUNDS);
 			
         }
 
