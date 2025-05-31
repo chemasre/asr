@@ -149,8 +149,6 @@ int selectedSustainTime;
 int selectedDecayTime;
 int selectedChannelType;
 int selectedChannelVolume;
-int selectedMeter;
-int selectedTempo;
 int selectedRow;
 int selectedRowPage;
 
@@ -188,6 +186,8 @@ char workPath[MAX_PATH_LENGTH];
 ChannelProperties* channelCells[SLOTS_COUNT];
 SoundProperties** soundCells[SLOTS_COUNT];
 int songRanges[SLOTS_COUNT * 2];
+int songTempos[SLOTS_COUNT];
+int songMeters[SLOTS_COUNT];
 
 SoundProperties** copyBuffer;
 int copyBufferPosX;
@@ -345,7 +345,7 @@ int soundEditorCallback( const void *input, void *output, unsigned long sampleIn
     
     if(isPlayState)
     {
-        int bps = (selectedTempo + 1);
+        int bps = (songTempos[selectedSlot] + 1);
         playTimer += (1.0f / SAMPLE_RATE);
         
         while(playTimer >= 1.0f / bps)
@@ -447,11 +447,13 @@ void drawUI()
             int b = (int)(int)(y * (255.0f / (OCTAVES_COUNT - 1)));
             
             int color;
-            if(selectedNote == x && selectedOctave == y) { color = COLOR_SELECTED; }
-            else { color = MAKE_COLOR(r, g, b); }            
+            char marker;
+            if(selectedNote == x && selectedOctave == y) { color = COLOR_SELECTED; marker = '*'; }
+            else { color = MAKE_COLOR(r, g, b); marker = ' '; }            
             
             setScreenCell(FREQUENCY_POSITION_X + x * SOUND_WIDTH_IN_CELLS, FREQUENCY_POSITION_Y + y * SOUND_HEIGHT_IN_CELLS, color, noteCharacters[x]);
             setScreenCell(FREQUENCY_POSITION_X + x * SOUND_WIDTH_IN_CELLS + 1, FREQUENCY_POSITION_Y + y * SOUND_HEIGHT_IN_CELLS, color, octavesCharacters[y]);
+            setScreenCell(FREQUENCY_POSITION_X + x * SOUND_WIDTH_IN_CELLS + 2, FREQUENCY_POSITION_Y + y * SOUND_HEIGHT_IN_CELLS, color, marker);            
         }
     }
 	
@@ -515,9 +517,9 @@ void drawUI()
     drawString(selectedChannelType == 0 && !isPlayState ? COLOR_SELECTED : COLOR_UNSELECTED, "TONE", CHANNELTYPE_POSITION_X, CHANNELTYPE_POSITION_Y);
     drawString(selectedChannelType == 1 && !isPlayState ? COLOR_SELECTED : COLOR_UNSELECTED, "NOISE", CHANNELTYPE_POSITION_X + CHANNELTYPE_WIDTH / 2, CHANNELTYPE_POSITION_Y);
 
-    drawString(selectedMeter == METER_TWO_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "2/4", METER_POSITION_X, METER_POSITION_Y);
-    drawString(selectedMeter == METER_THREE_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "3/4", METER_POSITION_X + METER_WIDTH / METER_COUNT, METER_POSITION_Y);
-    drawString(selectedMeter == METER_FOUR_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "4/4", METER_POSITION_X + METER_WIDTH / METER_COUNT * 2, METER_POSITION_Y);
+    drawString(songMeters[selectedSlot] == METER_TWO_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "2/4", METER_POSITION_X, METER_POSITION_Y);
+    drawString(songMeters[selectedSlot] == METER_THREE_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "3/4", METER_POSITION_X + METER_WIDTH / METER_COUNT, METER_POSITION_Y);
+    drawString(songMeters[selectedSlot] == METER_FOUR_BY_FOUR ? COLOR_SELECTED : COLOR_UNSELECTED, "4/4", METER_POSITION_X + METER_WIDTH / METER_COUNT * 2, METER_POSITION_Y);
 	
     for(int x = 0; x < TEMPO_WIDTH; x++)
     {
@@ -526,7 +528,7 @@ void drawUI()
         int b = 128;
         
         int color;
-        if(selectedTempo == x) { color = COLOR_SELECTED; }
+        if(songTempos[selectedSlot] == x) { color = COLOR_SELECTED; }
         else { color = MAKE_COLOR(r, g, b); } 
         
         setScreenCell(TEMPO_POSITION_X + x, TEMPO_POSITION_Y, color, hexaCharacters[x]);
@@ -561,9 +563,9 @@ void drawUI()
 			char c = '|';
 			if(row == selectedRow) { c = '-'; isBar = 0; }
 			else if(row == rangeStart || row == rangeEnd) { c = '-'; isBar = 0;  }
-			else if(selectedMeter == METER_TWO_BY_FOUR && row % 2 == 0) { c = '-'; isBar = 0;  } 
-			else if(selectedMeter == METER_THREE_BY_FOUR && row % 3 == 0) { c = '-'; isBar = 0;  }
-			else if(selectedMeter == METER_FOUR_BY_FOUR && row % 4 == 0) { c = '-'; isBar = 0;  }
+			else if(songMeters[selectedSlot] == METER_TWO_BY_FOUR && row % 2 == 0) { c = '-'; isBar = 0;  } 
+			else if(songMeters[selectedSlot] == METER_THREE_BY_FOUR && row % 3 == 0) { c = '-'; isBar = 0;  }
+			else if(songMeters[selectedSlot] == METER_FOUR_BY_FOUR && row % 4 == 0) { c = '-'; isBar = 0;  }
 			
 			int color;
 			
@@ -691,11 +693,42 @@ int tryLoadSound(int slot)
     
     if(file != 0)
     {
-        fread(&soundAreaWidth, sizeof(int), 1, file);
-        fread(&soundAreaHeight, sizeof(int), 1, file);
-                
+        // Tempo
+        float rowDuration;
+        fread(&rowDuration, sizeof(float), 1, file);        
+        songTempos[slot] = ((int)(1.0f / rowDuration) - 1);
+        
+        // Meter
+        fread(&songMeters[slot], sizeof(int), 1, file); 
+        
+        // Num channels
+        
+        int fileSoundAreaWidth;
+        fread(&fileSoundAreaWidth, sizeof(int), 1, file);
+        
+        ASSERT(fileSoundAreaWidth == soundAreaWidth, "File sound area width doesn't match")
+        
+        // Channel properties 
+        
+        for(int x = 0; x < soundAreaWidth; x++)
+        {
+            fread(&channelCells[slot][x].type, sizeof(int), 1, file);
+            fread(&channelCells[slot][x].volume, sizeof(float), 1, file);            
+        }   
+
+        // Num rows
+
+        int fileSoundAreaHeight;
+        fread(&fileSoundAreaHeight, sizeof(int), 1, file);
+
+        ASSERT(fileSoundAreaHeight == soundAreaHeight, "File sound area height doesn't match")
+        
+        // Range
+        
         fread(&songRanges[slot * 2 + 0], sizeof(int), 1, file);
-        fread(&songRanges[slot * 2 + 1], sizeof(int), 1, file);
+        fread(&songRanges[slot * 2 + 1], sizeof(int), 1, file); 
+
+        // Row properties
         
         for(int y = 0; y < soundAreaHeight; y++)
         {
@@ -703,8 +736,11 @@ int tryLoadSound(int slot)
             {
                 fread(&soundCells[slot][y][x].frequency, sizeof(float), 1, file);
                 fread(&soundCells[slot][y][x].volume, sizeof(float), 1, file);
+                fread(&soundCells[slot][y][x].attackDuration, sizeof(float), 1, file);
+                fread(&soundCells[slot][y][x].sustainDuration, sizeof(float), 1, file);
+                fread(&soundCells[slot][y][x].decayDuration, sizeof(float), 1, file);
             }
-        }
+        }        
 
         fclose(file);
         
@@ -732,11 +768,37 @@ int trySaveSound(int slot)
     
     if(file != 0)
     {
+        // Tempo
+        
+        float rowDuration = 1.0f / (songTempos[slot] + 1);
+        fwrite(&rowDuration, sizeof(float), 1, file);
+        
+        // Meter
+        
+        fwrite(&songMeters[slot], sizeof(int), 1, file);        
+        
+        // Num channels
+        
         fwrite(&soundAreaWidth, sizeof(int), 1, file);
+        
+        // Channel properties
+        
+        for(int x = 0; x < soundAreaWidth; x++)
+        {
+            fwrite(&channelCells[slot][x].type, sizeof(int), 1, file);
+            fwrite(&channelCells[slot][x].volume, sizeof(float), 1, file);            
+        }
+        
+        // Num rows
+
         fwrite(&soundAreaHeight, sizeof(int), 1, file);
-                
+        
+        // Range
+        
         fwrite(&songRanges[slot * 2 + 0], sizeof(int), 1, file);
         fwrite(&songRanges[slot * 2 + 1], sizeof(int), 1, file);
+        
+        // Row properties
         
         for(int y = 0; y < soundAreaHeight; y++)
         {
@@ -744,9 +806,12 @@ int trySaveSound(int slot)
             {
                 fwrite(&soundCells[slot][y][x].frequency, sizeof(float), 1, file);
                 fwrite(&soundCells[slot][y][x].volume, sizeof(float), 1, file);
+                fwrite(&soundCells[slot][y][x].attackDuration, sizeof(float), 1, file);
+                fwrite(&soundCells[slot][y][x].sustainDuration, sizeof(float), 1, file);
+                fwrite(&soundCells[slot][y][x].decayDuration, sizeof(float), 1, file);
             }
         }
-
+                
         fclose(file);
         
         success = 1;
@@ -822,8 +887,6 @@ int main(int argc, char* argv[])
     selectedDecayTime = TIME_WIDTH / 2;
     selectedChannelType = 0;
     selectedChannelVolume = CHANNELVOLUME_COUNT - 1;
-	selectedMeter = METER_FOUR_BY_FOUR;
-	selectedTempo = TEMPO_COUNT / 2;
 	selectedRow = 0;
 	selectedRowPage = 0;
 	
@@ -864,6 +927,8 @@ int main(int argc, char* argv[])
                 
         songRanges[s * 2 + 0] = 0;
         songRanges[s * 2 + 1] = soundAreaHeight;
+        songTempos[s] = TEMPO_COUNT / 2;
+        songMeters[s] = METER_FOUR_BY_FOUR;
 
     }
 	
@@ -1468,7 +1533,7 @@ int main(int argc, char* argv[])
                     }
 					
                     songRanges[selectedSlot * 2 + 0] = rangeStart;
-                    songRanges[selectedSlot * 0 + 1] = rangeCount; 
+                    songRanges[selectedSlot * 2 + 1] = rangeCount; 
 					
                     
                 }
@@ -1534,7 +1599,7 @@ int main(int argc, char* argv[])
         {
             if(mouseLeftPressed)
             {            
-                selectedMeter = (cursorCellX - METER_POSITION_X) / (METER_WIDTH / METER_COUNT);
+                songMeters[selectedSlot] = (cursorCellX - METER_POSITION_X) / (METER_WIDTH / METER_COUNT);
             }            
         }        
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1543,7 +1608,7 @@ int main(int argc, char* argv[])
         {
             if(mouseLeftPressed)
             {            
-                selectedTempo = (cursorCellX - TEMPO_POSITION_X) / (TEMPO_WIDTH / TEMPO_COUNT);
+                songTempos[selectedSlot] = (cursorCellX - TEMPO_POSITION_X) / (TEMPO_WIDTH / TEMPO_COUNT);
             }            
         }        
 
