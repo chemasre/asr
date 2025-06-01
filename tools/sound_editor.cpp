@@ -1,11 +1,10 @@
 #include "sound_editor.hpp"
 #include "sound.hpp"
+#include "songs.hpp"
 
 #define FREQUENCY_OPAQUE MAKE_COLOR(255,0,0)
 #define RANGES_COLOR_1 MAKE_COLOR(0,255,255)
 #define RANGES_COLOR_2 MAKE_COLOR(0,127,127)
-
-#define SOUND_FILE_PATTERN "sound%03d.snd"
 
 #define NOTES_COUNT 12
 #define OCTAVES_COUNT 9
@@ -40,9 +39,6 @@
 #define TIME_WIDTH TIME_PROPERTY_VALUES_COUNT
 #define TIME_HEIGHT (2 * TIME_PROPERTY_COUNT)
 
-#define CHANNELTYPE_TONE 0
-#define CHANNELTYPE_NOISE 1
-
 #define CHANNELTYPE_COUNT 2
 
 #define CHANNELTYPE_WIDTH 12
@@ -58,10 +54,6 @@
 
 #define CHANNELVOLUME_WIDTH CHANNELVOLUME_COUNT
 #define CHANNELVOLUME_HEIGHT 1
-
-#define METER_TWO_BY_FOUR 0
-#define METER_THREE_BY_FOUR 1
-#define METER_FOUR_BY_FOUR 2
 
 #define METER_COUNT 3
 
@@ -132,9 +124,6 @@
 #define COMMANDS2_POSITION_X 3
 #define COMMANDS2_POSITION_Y (COMMANDS1_POSITION_Y + COMMANDS1_HEIGHT + 5)
 
-#define PLAYSTATE_STOPPED 0
-#define PLAYSTATE_PLAYING 1
-
 #define SOUND_WIDTH_IN_CELLS 3
 #define SOUND_HEIGHT_IN_CELLS 1
 
@@ -183,13 +172,13 @@ char octavesCharacters[OCTAVES_COUNT] = { '0', '1', '2', '3', '4', '5', '6', '7'
 char workPath[MAX_PATH_LENGTH];
 
 
-ChannelProperties* channelCells[SLOTS_COUNT];
-SoundProperties** soundCells[SLOTS_COUNT];
+SongChannel* channelCells[SLOTS_COUNT];
+SongSound** soundCells[SLOTS_COUNT];
 int songRanges[SLOTS_COUNT * 2];
 int songTempos[SLOTS_COUNT];
 int songMeters[SLOTS_COUNT];
 
-SoundProperties** copyBuffer;
+SongSound** copyBuffer;
 int copyBufferPosX;
 int copyBufferPosY;
 int copyBufferWidth;
@@ -352,9 +341,11 @@ int soundEditorCallback( const void *input, void *output, unsigned long sampleIn
         {
             for(int c = 0; c < soundAreaWidth; c++)
             {
-                if(soundCells[selectedSlot][selectedRow][c].frequency > 0)
+                int absY = selectedRowPage * soundAreaHeight + selectedRow;
+                
+                if(soundCells[selectedSlot][absY][c].frequency > 0)
                 {
-                    SoundProperties* p = &soundCells[selectedSlot][selectedRow][c];
+                    SongSound* p = &soundCells[selectedSlot][absY][c];
                     
                     playSound(playSounds[c], playChannels[c], p->frequency, p->volume, p->attackDuration * 1.0f/bps, p->sustainDuration * 1.0f/bps, p->decayDuration * 1.0f/bps, 0);
 
@@ -586,13 +577,16 @@ void drawUI()
 
     for(int y = 0; y < soundAreaHeight; y++)
     {
+        int row = selectedRowPage * soundAreaHeight + y;
+
         for(int x = 0; x < soundAreaWidth; x ++)
         {
-            if(soundCells[selectedSlot][y][x].frequency != 0)
+            
+            if(soundCells[selectedSlot][row][x].frequency != 0)
             {
-				int note = getNote(soundCells[selectedSlot][y][x].frequency);
-				int octave = getOctave(soundCells[selectedSlot][y][x].frequency);
-				int volumeLevel = getVolumeLevel(soundCells[selectedSlot][y][x].volume);
+				int note = getNote(soundCells[selectedSlot][row][x].frequency);
+				int octave = getOctave(soundCells[selectedSlot][row][x].frequency);
+				int volumeLevel = getVolumeLevel(soundCells[selectedSlot][row][x].volume);
 				
 				int r = (int)(note * (255.0f / (NOTES_COUNT - 1)));
 				int g = 127 + (int)(volumeLevel * (128.0f / (VOLUME_COUNT - 1)));
@@ -721,7 +715,7 @@ int tryLoadSound(int slot)
         int fileSoundAreaHeight;
         fread(&fileSoundAreaHeight, sizeof(int), 1, file);
 
-        ASSERT(fileSoundAreaHeight == soundAreaHeight, "File sound area height doesn't match")
+        ASSERT(fileSoundAreaHeight == (soundAreaHeight * ROW_PAGES_COUNT), "File sound area height doesn't match")
         
         // Range
         
@@ -791,7 +785,8 @@ int trySaveSound(int slot)
         
         // Num rows
 
-        fwrite(&soundAreaHeight, sizeof(int), 1, file);
+        int rowCount = soundAreaHeight * ROW_PAGES_COUNT;
+        fwrite(&rowCount, sizeof(int), 1, file);
         
         // Range
         
@@ -800,7 +795,7 @@ int trySaveSound(int slot)
         
         // Row properties
         
-        for(int y = 0; y < soundAreaHeight; y++)
+        for(int y = 0; y < soundAreaHeight * ROW_PAGES_COUNT; y++)
         {
             for(int x = 0; x < soundAreaWidth; x++)
             {
@@ -906,17 +901,17 @@ int main(int argc, char* argv[])
 
     for(int s = 0; s < SLOTS_COUNT; s++)
     {
-		channelCells[s] = (ChannelProperties*)malloc(sizeof(ChannelProperties) * soundAreaWidth);
+		channelCells[s] = (SongChannel*)malloc(sizeof(SongChannel) * soundAreaWidth);
 		for(int i = 0; i < soundAreaWidth; i++)
 		{
 			channelCells[s][i].type = 0;
 			channelCells[s][i].volume = 1;			
 		}
 		
-        soundCells[s] = (SoundProperties**)malloc(sizeof(SoundProperties*) * soundAreaHeight);
-        for(int i = 0; i < soundAreaHeight; i ++)
+        soundCells[s] = (SongSound**)malloc(sizeof(SongSound*) * soundAreaHeight * ROW_PAGES_COUNT);
+        for(int i = 0; i < soundAreaHeight * ROW_PAGES_COUNT; i ++)
         { 
-            soundCells[s][i] = (SoundProperties*)malloc(sizeof(SoundProperties) * soundAreaWidth);
+            soundCells[s][i] = (SongSound*)malloc(sizeof(SongSound) * soundAreaWidth);
             
             for(int j = 0; j < soundAreaWidth; j++)
             {
@@ -942,10 +937,10 @@ int main(int argc, char* argv[])
 	copyBufferHasVolume = 0;
 	copyBufferHasTime = 0;
     
-	copyBuffer = (SoundProperties**)malloc(sizeof(SoundProperties*) * soundAreaHeight);
+	copyBuffer = (SongSound**)malloc(sizeof(SongSound*) * soundAreaHeight);
 	for(int y = 0; y < soundAreaHeight; y ++)
 	{ 
-		copyBuffer[y] = (SoundProperties*)malloc(sizeof(SoundProperties) * soundAreaWidth);
+		copyBuffer[y] = (SongSound*)malloc(sizeof(SongSound) * soundAreaWidth);
 		
 		for(int x = 0; x < soundAreaWidth; x++)
 		{
@@ -980,7 +975,7 @@ int main(int argc, char* argv[])
         }
         else if(isKeyDown(KEY_F1) && !isPlayState)
         {
-            for(int y = 0; y < soundAreaHeight; y++)
+            for(int y = 0; y < soundAreaHeight * ROW_PAGES_COUNT; y++)
             {
                 for(int x = 0; x < soundAreaWidth; x++)
                 {
@@ -1034,25 +1029,28 @@ int main(int argc, char* argv[])
 
 			for(int y = 0; y < copyBufferHeight; y ++)
 			{
+                int absY = selectedRowPage * soundAreaHeight + selectionSoundY + y;
+
 				for(int x = 0; x < copyBufferWidth; x++)
 				{
-					int f = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].frequency;					
-					float v = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].volume;
+                    
+					int f = soundCells[selectedSlot][absY][selectionSoundX + x].frequency;					
+					float v = soundCells[selectedSlot][absY][selectionSoundX + x].volume;
 					
-					float at = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].attackDuration;
-					float st = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].sustainDuration;
-					float dt = soundCells[selectedSlot][selectionSoundY + y][selectionSoundX + x].decayDuration;
+					float at = soundCells[selectedSlot][absY][selectionSoundX + x].attackDuration;
+					float st = soundCells[selectedSlot][absY][selectionSoundX + x].sustainDuration;
+					float dt = soundCells[selectedSlot][absY][selectionSoundX + x].decayDuration;
 
 					if(frequencyModeEnabled)
 					{						
 						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].frequency = f;						
-						if(isCut) { soundCells[selectedSlot][y + copyBufferPosY][x + copyBufferPosX].frequency = 0; }
+						if(isCut) { soundCells[selectedSlot][absY][x + copyBufferPosX].frequency = 0; }
 					}
 					
 					if(volumeModeEnabled)
 					{
 						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].volume = v;
-						if(isCut) { soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].volume = 0; }
+						if(isCut) { soundCells[selectedSlot][absY][x + selectionSoundX].volume = 0; }
 					}
 					
 					if(timeModeEnabled)
@@ -1062,9 +1060,9 @@ int main(int argc, char* argv[])
 						copyBuffer[y + copyBufferPosY][x + copyBufferPosX].decayDuration = dt;
 						if(isCut)
 						{
-							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].attackDuration = 0;
-							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].sustainDuration = 0;
-							soundCells[selectedSlot][y + selectionSoundY][x + selectionSoundX].decayDuration = 0;
+							soundCells[selectedSlot][absY][x + selectionSoundX].attackDuration = 0;
+							soundCells[selectedSlot][absY][x + selectionSoundX].sustainDuration = 0;
+							soundCells[selectedSlot][absY][x + selectionSoundX].decayDuration = 0;
 						}
 					}
 				}
@@ -1098,24 +1096,26 @@ int main(int argc, char* argv[])
 						
 						int soundX = (cursorCellX - soundAreaPosX) / SOUND_WIDTH_IN_CELLS + x;
 						int soundY = (cursorCellY - soundAreaPosY) / SOUND_HEIGHT_IN_CELLS + y;
+                        
+                        int absY = selectedRowPage * soundAreaHeight + soundY;
 						
 						if(isInsideRect(soundX, soundY, 0, 0, soundAreaWidth, soundAreaHeight))
 						{
 							if(copyFrequency)
 							{
-								soundCells[selectedSlot][soundY][soundX].frequency = f;
+								soundCells[selectedSlot][absY][soundX].frequency = f;
 							}
 							
 							if(copyVolume)
 							{
-								soundCells[selectedSlot][soundY][soundX].volume = v;
+								soundCells[selectedSlot][absY][soundX].volume = v;
 							}
 														
 							if(copyTime)
 							{
-								soundCells[selectedSlot][soundY][soundX].attackDuration = at;
-								soundCells[selectedSlot][soundY][soundX].sustainDuration = st;
-								soundCells[selectedSlot][soundY][soundX].decayDuration = dt;
+								soundCells[selectedSlot][absY][soundX].attackDuration = at;
+								soundCells[selectedSlot][absY][soundX].sustainDuration = st;
+								soundCells[selectedSlot][absY][soundX].decayDuration = dt;
 							}
 
 							success = 1;
@@ -1177,12 +1177,14 @@ int main(int argc, char* argv[])
             
 			for(int y = selectionSoundY; y <= selectionSoundY + selectionSoundHeight - 1; y ++)
 			{
+                int absY = selectedRowPage * soundAreaHeight + y;
+                
 				for(int x = selectionSoundX; x <= selectionSoundX + selectionSoundWidth - 1; x++)
 				{
-					if(frequencyModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
+					if(frequencyModeEnabled && soundCells[selectedSlot][absY][x].frequency > 0)
 					{
-						int note   = getNote(soundCells[selectedSlot][y][x].frequency);
-						int octave = getOctave(soundCells[selectedSlot][y][x].frequency);
+						int note   = getNote(soundCells[selectedSlot][absY][x].frequency);
+						int octave = getOctave(soundCells[selectedSlot][absY][x].frequency);
                             
                         if(isUp)
                         {
@@ -1223,24 +1225,24 @@ int main(int argc, char* argv[])
 
                         }
                         
-                        soundCells[selectedSlot][y][x].frequency = getFrequency(octave, note);
+                        soundCells[selectedSlot][absY][x].frequency = getFrequency(octave, note);
                         
 					}
 					
-					if(volumeModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
+					if(volumeModeEnabled && soundCells[selectedSlot][absY][x].frequency > 0)
 					{
-						int l = getVolumeLevel(soundCells[selectedSlot][y][x].volume);
+						int l = getVolumeLevel(soundCells[selectedSlot][absY][x].volume);
                         if(isUp) { l++; if(l >= VOLUME_COUNT) { l = VOLUME_COUNT - 1; } }
                         else { l--; if(l < 0) { l = 0; } }
                         
-                        soundCells[selectedSlot][y][x].volume = getVolume(l);
+                        soundCells[selectedSlot][absY][x].volume = getVolume(l);
 					}
 					
-					if(timeModeEnabled && soundCells[selectedSlot][y][x].frequency > 0)
+					if(timeModeEnabled && soundCells[selectedSlot][absY][x].frequency > 0)
 					{
-						int al = getTimePropertyLevel(soundCells[selectedSlot][y][x].attackDuration);
-						int sl = getTimePropertyLevel(soundCells[selectedSlot][y][x].sustainDuration);
-						int dl = getTimePropertyLevel(soundCells[selectedSlot][y][x].decayDuration);
+						int al = getTimePropertyLevel(soundCells[selectedSlot][absY][x].attackDuration);
+						int sl = getTimePropertyLevel(soundCells[selectedSlot][absY][x].sustainDuration);
+						int dl = getTimePropertyLevel(soundCells[selectedSlot][absY][x].decayDuration);
                         
                         if(isUp) { al++; if(al >= TIME_PROPERTY_VALUES_COUNT) { al = TIME_PROPERTY_VALUES_COUNT - 1; } }
                         else { al--; if(al < 0) { al = 0; } }                        
@@ -1251,9 +1253,9 @@ int main(int argc, char* argv[])
                         if(isUp) { dl++; if(dl >= TIME_PROPERTY_VALUES_COUNT) { dl = TIME_PROPERTY_VALUES_COUNT - 1; } }
                         else { dl--; if(dl < 0) { dl = 0; } }                        
                         
-                        soundCells[selectedSlot][y][x].attackDuration = getTimeProperty(al);
-                        soundCells[selectedSlot][y][x].sustainDuration = getTimeProperty(sl);
-                        soundCells[selectedSlot][y][x].decayDuration = getTimeProperty(dl);
+                        soundCells[selectedSlot][absY][x].attackDuration = getTimeProperty(al);
+                        soundCells[selectedSlot][absY][x].sustainDuration = getTimeProperty(sl);
+                        soundCells[selectedSlot][absY][x].decayDuration = getTimeProperty(dl);
 
 					}
 				}
@@ -1267,26 +1269,29 @@ int main(int argc, char* argv[])
 		{
 			for(int y = 0; y < selectionSoundHeight; y ++)
 			{
+                
 				for(int x = 0; x < selectionSoundWidth; x++)
 				{
 					int cellX = selectionSoundX + x;
-					int cellY = selectionSoundY + y;
-										
+					int absY = selectedRowPage * soundAreaHeight + selectionSoundY + y;
+                    
+                    
+
 					if(frequencyModeEnabled)
 					{						
-						soundCells[selectedSlot][cellY][cellX].frequency = 0;
+						soundCells[selectedSlot][absY][cellX].frequency = 0;
 					}
 					
 					if(volumeModeEnabled)
 					{
-						soundCells[selectedSlot][cellY][cellX].volume = 0;
+						soundCells[selectedSlot][absY][cellX].volume = 0;
 					}
 					
 					if(timeModeEnabled)
 					{
-						soundCells[selectedSlot][cellY][cellX].attackDuration = 0;
-						soundCells[selectedSlot][cellY][cellX].sustainDuration = 0;
-						soundCells[selectedSlot][cellY][cellX].decayDuration = 0;
+						soundCells[selectedSlot][absY][cellX].attackDuration = 0;
+						soundCells[selectedSlot][absY][cellX].sustainDuration = 0;
+						soundCells[selectedSlot][absY][cellX].decayDuration = 0;
 					}
 				}
 			}				
@@ -1410,6 +1415,8 @@ int main(int argc, char* argv[])
                 int x = (cursorCellX - soundAreaPosX) / SOUND_WIDTH_IN_CELLS;
                 int y = (cursorCellY - soundAreaPosY) / SOUND_HEIGHT_IN_CELLS;
                 
+                int absY = selectedRowPage * soundAreaHeight + y;
+                
                 int canChangeFrequency = (selectedMode == MODE_ALL || selectedMode == MODE_FREQUENCY);
                 int canChangeVolume = (selectedMode == MODE_ALL || selectedMode == MODE_VOLUME);
                 int canChangeTime = (selectedMode == MODE_ALL || selectedMode == MODE_TIME);
@@ -1434,19 +1441,19 @@ int main(int argc, char* argv[])
 						{
 							if(canChangeFrequency)
 							{
-								soundCells[s][y][x].frequency = getFrequency(selectedOctave, selectedNote);
+								soundCells[s][absY][x].frequency = getFrequency(selectedOctave, selectedNote);
 							}
 							
 							if(canChangeVolume)
 							{
-								soundCells[s][y][x].volume = getVolume(selectedVolumeLevel);
+								soundCells[s][absY][x].volume = getVolume(selectedVolumeLevel);
 							}
 
 							if(canChangeTime)
 							{
-								soundCells[s][y][x].attackDuration = getTimeProperty(selectedAttackTime);
-								soundCells[s][y][x].sustainDuration = getTimeProperty(selectedSustainTime);
-								soundCells[s][y][x].decayDuration = getTimeProperty(selectedDecayTime);
+								soundCells[s][absY][x].attackDuration = getTimeProperty(selectedAttackTime);
+								soundCells[s][absY][x].sustainDuration = getTimeProperty(selectedSustainTime);
+								soundCells[s][absY][x].decayDuration = getTimeProperty(selectedDecayTime);
 							}
 						}
                         
@@ -1455,13 +1462,13 @@ int main(int argc, char* argv[])
                     {
 						if(isInsideRect(x, y, selectionSoundX, selectionSoundY, selectionSoundWidth, selectionSoundHeight))
 						{
-							if(canChangeFrequency) { soundCells[s][y][x].frequency = 0; }
-							if(canChangeVolume) { soundCells[s][y][x].volume = 0; }
+							if(canChangeFrequency) { soundCells[s][absY][x].frequency = 0; }
+							if(canChangeVolume) { soundCells[s][absY][x].volume = 0; }
 							if(canChangeTime)
 							{
-								soundCells[s][y][x].attackDuration = 0;
-								soundCells[s][y][x].sustainDuration = 0;
-								soundCells[s][y][x].decayDuration = 0;
+								soundCells[s][absY][x].attackDuration = 0;
+								soundCells[s][absY][x].sustainDuration = 0;
+								soundCells[s][absY][x].decayDuration = 0;
 							}
 						}                        
                     }
@@ -1470,11 +1477,11 @@ int main(int argc, char* argv[])
                 {
                     if(mouseLeftPressed)
                     {                      
-                        float f = soundCells[s][y][x].frequency;
-                        float v = soundCells[s][y][x].volume;
-                        float at = soundCells[s][y][x].attackDuration;
-                        float st = soundCells[s][y][x].sustainDuration;
-                        float dt = soundCells[s][y][x].decayDuration;
+                        float f = soundCells[s][absY][x].frequency;
+                        float v = soundCells[s][absY][x].volume;
+                        float at = soundCells[s][absY][x].attackDuration;
+                        float st = soundCells[s][absY][x].sustainDuration;
+                        float dt = soundCells[s][absY][x].decayDuration;
 						
                         if(canChangeFrequency)
                         {   selectedNote = getNote(f);

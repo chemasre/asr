@@ -16,3 +16,4 @@ tools\bmp2texture.exe assets\textures\texture014.bmp bin\textures\texture014.tex
 tools\bmp2texture.exe assets\textures\texture015.bmp bin\textures\texture015.tex
 xcopy assets\sprites\*.spr bin\sprites\ /y
 xcopy assets\maps\*.map bin\maps\ /y
+xcopy assets\sounds\*.snd bin\sounds\ /y

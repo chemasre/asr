@@ -12,34 +12,6 @@
 #define GENERATOR_TYPE_TONE 0
 #define GENERATOR_TYPE_NOISE 1
 
-struct SongProperties
-{
-	int numChannels;
-	float rowsPerSecond;
-	
-	int startRow;
-	int numRows;
-
-};
-
-struct SoundProperties
-{
-	float frequency;
-	float volume;
-	
-	float attackDuration;
-	float sustainDuration;
-	float decayDuration;
-		
-};
-
-struct ChannelProperties
-{
-	int type;
-	float volume;
-
-};
-
 void setSoundCallbackFunction(int (*f)(const void *, void *, unsigned long, unsigned long, void *));
 
 void muteChannel(int index);

@@ -2,7 +2,7 @@
 #include <input.hpp>
 #include <sound.hpp>
 #include <screen.hpp>
-#include <music.hpp>
+#include <songs.hpp>
 #include <ui.hpp>
 #include <system.hpp>
 #include <hud.hpp>
@@ -89,7 +89,7 @@ void main()
     initSprites();
     initTextures();
     initScreen();
-    initMusic();
+    initSongs();
     initUI();
     initHud();
     initInfoLine();
@@ -159,9 +159,11 @@ void main()
     sunLightDirection = getMapParam(0, MAP_PARAM_LIGHT_DIRECTIONAL_DIRECTION) * 360.0f / 16;
     sunLightIntensity = getMapParam(0, MAP_PARAM_LIGHT_DIRECTIONAL_INTENSITY) * 1.0f / 15;
     
+    playSong(0);
+    
     while(!exit)
     {
-        updateMusic();
+        updateSongs();
         updateInput();
         updateSound();
         
@@ -355,7 +357,7 @@ void main()
                 
     } 
 
-    finishMusic();
+    finishSongs();
     finishSound();
     finishLog();
 
