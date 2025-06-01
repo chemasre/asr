@@ -264,8 +264,6 @@ void clearScreen()
         }
     }
     
-    showScreen();
-
 }
 
 
@@ -273,24 +271,27 @@ void showScreen()
 {
     showScreenBuffer[0] = '\0';    
     
-    int i = 0;
+    char* bufferCursor = showScreenBuffer;
     
     for(int y = 0; y < screenHeight; y ++)
     {
+        ScreenCell* cellCursor = &screen[y][0];
+        
         for(int x = 0; x < screenWidth; x++)
         {
-            char* c = screen[y][x].string;
-            int j = 0;
-            while(c[j] != '\0') { showScreenBuffer[i + j] = c[j]; j++; }
-            i += j;
+            char* stringCursor = cellCursor->string;
+            
+            while(*stringCursor != '\0') { *(bufferCursor++) = *(stringCursor++); }
+            
+            cellCursor ++;
             
         }
         
-        showScreenBuffer[i] = '\n';
-        i++;
+        *bufferCursor = '\n';
+        bufferCursor ++;
     }    
     
-    showScreenBuffer[i] = '\0';
+    *bufferCursor = '\0';
     
     setScreenCursorPosition(0, 0);
     printf(showScreenBuffer);
