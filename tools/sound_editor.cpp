@@ -174,6 +174,7 @@ char workPath[MAX_PATH_LENGTH];
 
 SongChannel* channelCells[SLOTS_COUNT];
 SongSound** soundCells[SLOTS_COUNT];
+
 int songRanges[SLOTS_COUNT * 2];
 int songTempos[SLOTS_COUNT];
 int songMeters[SLOTS_COUNT];
@@ -197,6 +198,9 @@ int* playChannels;
 int* playSounds;
 int playStartRow;
 int playStartRowPage;
+
+int previewChannel;
+int previewSound;
 
 float playTimer;
 
@@ -326,6 +330,19 @@ int getOctave(float frequency)
 	}
 	
 	return octave;
+}
+
+void playPreviewSound(int channelType, float frequency, float volume, float attack, float sustain, float decay)
+{
+    if(previewChannel >= 0) { releaseChannel(previewChannel); previewChannel = -1; }
+    if(previewSound >= 0) { releaseSound(previewSound); previewSound = -1; }
+    
+    previewChannel = reserveChannel(channelType);
+    setChannelVolume(previewChannel, 1);                            
+    previewSound = reserveSound();
+    
+    playSound(previewSound, previewChannel, frequency, volume, attack, sustain, decay, 0);
+    
 }
 
 int soundEditorCallback( const void *input, void *output, unsigned long sampleIndex, unsigned long totalSamples, void *callbackData )
@@ -898,6 +915,9 @@ int main(int argc, char* argv[])
 	
 	playChannels = (int*)malloc(sizeof(int) * soundAreaWidth);
 	playSounds = (int*)malloc(sizeof(int) * soundAreaWidth);
+    
+    previewChannel = -1;
+    previewSound = -1;
 
     for(int s = 0; s < SLOTS_COUNT; s++)
     {
@@ -1306,8 +1326,8 @@ int main(int argc, char* argv[])
 			{
 				playState = PLAYSTATE_PLAYING;
 												
-				int playStartRow = selectedRow;
-				int playStartRowPage = selectedRowPage;
+				playStartRow = selectedRow;
+				playStartRowPage = selectedRowPage;
 				
 				
 				
@@ -1345,6 +1365,16 @@ int main(int argc, char* argv[])
             if(mouseLeftPressed)
             {
                 selectedVolumeLevel = cursorCellX - VOLUME_POSITION_X;
+                
+                int bps = (songTempos[selectedSlot] + 1);
+                playPreviewSound( selectedChannelType,
+                                  getFrequency(selectedOctave, selectedNote),
+                                  getVolume(selectedVolumeLevel),
+                                  getTimeProperty(selectedAttackTime) * 1.0f / bps,
+                                  getTimeProperty(selectedSustainTime) * 1.0f / bps,
+                                  getTimeProperty(selectedDecayTime) * 1.0f / bps
+                                  
+                                );                
             }
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1365,6 +1395,7 @@ int main(int argc, char* argv[])
 					selectedChannelType = channelCells[selectedSlot][channel].type;
 					selectedChannelVolume = getVolumeLevel(channelCells[selectedSlot][channel].volume);
 				}
+                
 			}
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1384,6 +1415,17 @@ int main(int argc, char* argv[])
             {            
                 selectedNote = (cursorCellX - FREQUENCY_POSITION_X) / SOUND_WIDTH_IN_CELLS;
                 selectedOctave = (cursorCellY - FREQUENCY_POSITION_Y) / SOUND_HEIGHT_IN_CELLS;
+                
+                int bps = (songTempos[selectedSlot] + 1);
+                playPreviewSound( selectedChannelType,
+                                  getFrequency(selectedOctave, selectedNote),
+                                  getVolume(selectedVolumeLevel),
+                                  getTimeProperty(selectedAttackTime) * 1.0f / bps,
+                                  getTimeProperty(selectedSustainTime) * 1.0f / bps,
+                                  getTimeProperty(selectedDecayTime) * 1.0f / bps
+                                  
+                                );                
+                
             }            
         }
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1401,6 +1443,17 @@ int main(int argc, char* argv[])
 					else if(property == TIME_PROPERTY_SUSTAIN) {  selectedSustainTime = value; }
 					else if(property == TIME_PROPERTY_DECAY)
 					{  selectedDecayTime = value; }
+                
+                    int bps = (songTempos[selectedSlot] + 1);
+                    playPreviewSound( selectedChannelType,
+                                      getFrequency(selectedOctave, selectedNote),
+                                      getVolume(selectedVolumeLevel),
+                                      getTimeProperty(selectedAttackTime) * 1.0f / bps,
+                                      getTimeProperty(selectedSustainTime) * 1.0f / bps,
+                                      getTimeProperty(selectedDecayTime) * 1.0f / bps
+                                      
+                                    );                
+                
 				}
 			
 			}			
@@ -1455,6 +1508,19 @@ int main(int argc, char* argv[])
 								soundCells[s][absY][x].sustainDuration = getTimeProperty(selectedSustainTime);
 								soundCells[s][absY][x].decayDuration = getTimeProperty(selectedDecayTime);
 							}
+                            
+                            if(soundCells[s][absY][x].frequency > 0)
+                            {
+                                int bps = (songTempos[selectedSlot] + 1);
+                                playPreviewSound( channelCells[s][x].type,
+                                                  soundCells[s][absY][x].frequency,
+                                                  soundCells[s][absY][x].volume,
+                                                  soundCells[s][absY][x].attackDuration * 1.0f / bps,
+                                                  soundCells[s][absY][x].sustainDuration * 1.0f / bps,
+                                                  soundCells[s][absY][x].decayDuration * 1.0f / bps
+                                                  
+                                                );                             
+                            }
 						}
                         
                     }
@@ -1499,6 +1565,16 @@ int main(int argc, char* argv[])
 							selectedSustainTime = getTimePropertyLevel(st);
 							selectedDecayTime = getTimePropertyLevel(dt);
 						}
+                        
+                        if(f > 0)
+                        {
+                            int bps = (songTempos[s] + 1);
+                            playPreviewSound( channelCells[s][x].type, f, v,
+                                              at * 1.0f / bps,
+                                              st * 1.0f / bps,
+                                              dt * 1.0f / bps
+                                            );                             
+                        }                        
                     }
                 }
                 else if(selectedTool == TOOL_RANGE)
@@ -1589,6 +1665,16 @@ int main(int argc, char* argv[])
             if(mouseLeftPressed)
             {            
                 selectedChannelType = (cursorCellX - CHANNELTYPE_POSITION_X) / (CHANNELTYPE_WIDTH / CHANNELTYPE_COUNT);
+                
+                int bps = (songTempos[selectedSlot] + 1);
+                playPreviewSound( selectedChannelType,
+                                  getFrequency(selectedOctave, selectedNote),
+                                  getVolume(selectedVolumeLevel),
+                                  getTimeProperty(selectedAttackTime) * 1.0f / bps,
+                                  getTimeProperty(selectedSustainTime) * 1.0f / bps,
+                                  getTimeProperty(selectedDecayTime) * 1.0f / bps
+                                  
+                                );                 
             }            
         }        
         else if(isInsideRect(cursorCellX, cursorCellY,
@@ -1616,6 +1702,17 @@ int main(int argc, char* argv[])
             if(mouseLeftPressed)
             {            
                 songTempos[selectedSlot] = (cursorCellX - TEMPO_POSITION_X) / (TEMPO_WIDTH / TEMPO_COUNT);
+                
+                int bps = (songTempos[selectedSlot] + 1);
+                playPreviewSound( selectedChannelType,
+                                  getFrequency(selectedOctave, selectedNote),
+                                  getVolume(selectedVolumeLevel),
+                                  getTimeProperty(selectedAttackTime) * 1.0f / bps,
+                                  getTimeProperty(selectedSustainTime) * 1.0f / bps,
+                                  getTimeProperty(selectedDecayTime) * 1.0f / bps
+                                  
+                                );                
+                
             }            
         }        
 
@@ -1695,6 +1792,10 @@ int main(int argc, char* argv[])
         wait((int)(1.0f / SCREEN_FPS * 1000));
     }
 	
+    
+    if(previewChannel >= 0) { releaseChannel(previewChannel); previewChannel = -1; }
+    if(previewSound >= 0) { releaseSound(previewSound); previewSound = -1; }
+    
 	finishLog();
     
 }
