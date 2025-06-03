@@ -741,7 +741,7 @@ int tryLoadSound(int slot)
 
         // Row properties
         
-        for(int y = 0; y < soundAreaHeight; y++)
+        for(int y = 0; y < soundAreaHeight * ROW_PAGES_COUNT; y++)
         {
             for(int x = 0; x < soundAreaWidth; x++)
             {
