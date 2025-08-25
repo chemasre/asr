@@ -3,3 +3,4 @@
 *.res
 bin/log.txt
 log.txt
+docs/*.backup
